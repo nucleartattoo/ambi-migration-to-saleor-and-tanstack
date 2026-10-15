@@ -212,13 +212,28 @@ export function getProductBySlug(slugOrSku: string): CatalogProduct | undefined 
 /**
  * Get featured products for the storefront homepage
  */
-export function getFeaturedProducts(limit = 8): CatalogProduct[] {
-  // Select top configurable products with real images from the core categories
-  const featured = allProducts.filter(
-    (p) => p.is_visible_individually && p.image && p.price > 0 && p.options.length > 0,
+export function getFeaturedProducts(limit = 8, categorySlug?: string): CatalogProduct[] {
+  let candidates = allProducts.filter(
+    (p) => p.is_visible_individually && p.image && getProductEffectivePrice(p) > 0,
   )
 
-  return featured.slice(0, limit)
+  if (categorySlug && categorySlug !== 'all') {
+    const cat = getCategoryBySlug(categorySlug)
+    if (cat) {
+      const desc = categoryDescendants[cat.id] || [cat.id]
+      const cidSet = new Set(desc)
+      candidates = candidates.filter((p) => p.category_ids.some((cid) => cidSet.has(cid)))
+    }
+  }
+
+  // Prioritize products with rich options and full galleries
+  candidates.sort((a, b) => {
+    const aScore = (a.options.length > 0 ? 10 : 0) + (a.gallery.length > 1 ? 5 : 0)
+    const bScore = (b.options.length > 0 ? 10 : 0) + (b.gallery.length > 1 ? 5 : 0)
+    return bScore - aScore
+  })
+
+  return candidates.slice(0, limit)
 }
 
 /**
