@@ -181,12 +181,14 @@ def generate_catalog():
             "category_ids": cat_ids,
             "description": attrs.get("description", ""),
             "short_description": attrs.get("short_description", ""),
+            "is_visible_individually": visibility != 1,
             "options": conf_options,
             "variants": conf_children
         })
 
     out = {
         "categories": {cid: c for cid, c in categories.items() if cid not in ("1", "2")},
+        "category_descendants": {cid: list(desc) for cid, desc in cat_descendants.items() if cid not in ("1", "2")},
         "products": products
     }
 

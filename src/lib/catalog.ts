@@ -49,15 +49,15 @@ export interface CatalogProduct {
   short_description: string
 }
 
-const rawCategories: Record<string, CatalogCategory> = catalogData.categories as Record<
+const rawCategories: Record<string, CatalogCategory> = (catalogData.categories || {}) as Record<
   string,
   CatalogCategory
 >
-const categoryDescendants: Record<string, string[]> = catalogData.category_descendants as Record<
+const categoryDescendants: Record<string, string[]> = ((catalogData as any).category_descendants || {}) as Record<
   string,
   string[]
 >
-const allProducts: CatalogProduct[] = catalogData.products as CatalogProduct[]
+const allProducts: CatalogProduct[] = (catalogData.products || []) as CatalogProduct[]
 
 // Top 7 Primary categories
 export const TOP_CATEGORY_IDS = ['51', '118', '55', '142', '54', '180', '58']
