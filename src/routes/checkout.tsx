@@ -226,6 +226,18 @@ function CheckoutPage() {
       }
 
       setConfirmedOrder(orderData)
+
+      // Persist to order history for customer account
+      if (typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('ambi_orders_history_v1')
+          const existing = raw ? JSON.parse(raw) : []
+          localStorage.setItem('ambi_orders_history_v1', JSON.stringify([orderData, ...existing]))
+        } catch (err) {
+          console.error('Failed to save order history:', err)
+        }
+      }
+
       clearCart()
       setIsSubmitting(false)
     }, 1200)
