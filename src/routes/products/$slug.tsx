@@ -681,39 +681,41 @@ function ProductDetailPage() {
           className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-xl animate-in fade-in duration-200"
         >
           {/* Header Controls */}
-          <div className="flex items-center justify-between border-b border-zinc-800/80 px-6 py-4">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-bold text-white truncate max-w-md">{product.name}</span>
-              <span className="rounded-full bg-zinc-800 px-2.5 py-0.5 text-xs font-mono text-zinc-300">
+          <div className="flex items-center justify-between border-b border-zinc-800/80 px-4 sm:px-6 py-3 sm:py-4">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <span className="hidden sm:inline text-sm font-bold text-white truncate max-w-xs md:max-w-md">
+                {product.name}
+              </span>
+              <span className="rounded-full bg-zinc-800 px-2.5 py-0.5 text-xs font-mono text-zinc-300 whitespace-nowrap">
                 {activeImageIndex + 1} / {galleryImages.length}
               </span>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {/* Zoom In/Out Controls */}
               <div className="flex items-center rounded-lg border border-zinc-800 bg-zinc-900/90 p-0.5">
                 <button
                   type="button"
                   onClick={() => setLightboxZoom((z) => Math.max(1, z - 0.5))}
                   disabled={lightboxZoom <= 1}
-                  className="p-1.5 text-zinc-400 hover:text-white disabled:opacity-30 disabled:hover:text-zinc-400"
+                  className="p-1 sm:p-1.5 text-zinc-400 hover:text-white disabled:opacity-30 disabled:hover:text-zinc-400"
                   title="Zoom Out (-)"
                   aria-label="Zoom Out"
                 >
-                  <ZoomOut className="h-4 w-4" />
+                  <ZoomOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
-                <span className="px-2 text-xs font-mono font-semibold text-amber-400 min-w-14 text-center">
+                <span className="px-1.5 sm:px-2 text-[11px] sm:text-xs font-mono font-semibold text-amber-400 min-w-11 sm:min-w-14 text-center">
                   {Math.round(lightboxZoom * 100)}%
                 </span>
                 <button
                   type="button"
                   onClick={() => setLightboxZoom((z) => Math.min(2.5, z + 0.5))}
                   disabled={lightboxZoom >= 2.5}
-                  className="p-1.5 text-zinc-400 hover:text-white disabled:opacity-30 disabled:hover:text-zinc-400"
+                  className="p-1 sm:p-1.5 text-zinc-400 hover:text-white disabled:opacity-30 disabled:hover:text-zinc-400"
                   title="Zoom In (+)"
                   aria-label="Zoom In"
                 >
-                  <ZoomIn className="h-4 w-4" />
+                  <ZoomIn className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
               </div>
 
@@ -721,9 +723,9 @@ function ProductDetailPage() {
                 <button
                   type="button"
                   onClick={() => setLightboxZoom(1)}
-                  className="rounded-lg border border-zinc-800 bg-zinc-900/90 px-2.5 py-1.5 text-xs text-zinc-300 hover:text-white"
+                  className="hidden sm:inline-block rounded-lg border border-zinc-800 bg-zinc-900/90 px-2 py-1 text-xs text-zinc-300 hover:text-white"
                 >
-                  Reset (100%)
+                  Reset
                 </button>
               )}
 
@@ -733,34 +735,34 @@ function ProductDetailPage() {
                   setIsLightboxOpen(false)
                   setLightboxZoom(1)
                 }}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800 transition"
+                className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800 transition"
                 aria-label="Close lightbox"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
           </div>
 
           {/* Main Stage Viewport */}
-          <div className="relative flex-1 overflow-auto flex items-center justify-center p-4 select-none">
+          <div className="relative flex-1 overflow-auto flex items-center justify-center p-2 sm:p-4 select-none">
             {/* Prev/Next Buttons */}
             {galleryImages.length > 1 && (
               <>
                 <button
                   type="button"
                   onClick={handlePrevImage}
-                  className="absolute left-6 top-1/2 -translate-y-1/2 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/80 text-white hover:bg-amber-500 hover:text-black transition shadow-2xl active:scale-95"
+                  className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/80 text-white hover:bg-amber-500 hover:text-black transition shadow-2xl active:scale-95"
                   aria-label="Previous image"
                 >
-                  <ChevronLeft className="h-6 w-6" />
+                  <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
                 </button>
                 <button
                   type="button"
                   onClick={handleNextImage}
-                  className="absolute right-6 top-1/2 -translate-y-1/2 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/80 text-white hover:bg-amber-500 hover:text-black transition shadow-2xl active:scale-95"
+                  className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/80 text-white hover:bg-amber-500 hover:text-black transition shadow-2xl active:scale-95"
                   aria-label="Next image"
                 >
-                  <ChevronRight className="h-6 w-6" />
+                  <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
                 </button>
               </>
             )}
@@ -772,15 +774,15 @@ function ProductDetailPage() {
               <img
                 src={activeImage}
                 alt={product.name}
-                className="max-h-[70vh] max-w-[85vw] object-contain drop-shadow-2xl rounded-lg"
+                className="max-h-[65vh] sm:max-h-[70vh] max-w-[85vw] object-contain drop-shadow-2xl rounded-lg"
               />
             </div>
           </div>
 
           {/* Bottom Thumbnails Strip */}
           {galleryImages.length > 1 && (
-            <div className="border-t border-zinc-800/80 bg-zinc-950/80 p-4">
-              <div className="mx-auto flex max-w-xl items-center justify-center gap-3 overflow-x-auto pb-1">
+            <div className="border-t border-zinc-800/80 bg-zinc-950/80 p-2 sm:p-4">
+              <div className="mx-auto flex max-w-xl items-center justify-center gap-2 sm:gap-3 overflow-x-auto pb-1">
                 {galleryImages.map((imgUrl, idx) => (
                   <button
                     type="button"
@@ -789,7 +791,7 @@ function ProductDetailPage() {
                       setActiveImage(imgUrl)
                       setLightboxZoom(1)
                     }}
-                    className={`h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border p-1 bg-zinc-900 transition ${
+                    className={`h-11 w-11 sm:h-14 sm:w-14 flex-shrink-0 overflow-hidden rounded-lg border p-1 bg-zinc-900 transition ${
                       activeImage === imgUrl
                         ? 'border-amber-500 ring-2 ring-amber-500/50 scale-105'
                         : 'border-zinc-800 opacity-60 hover:opacity-100'
