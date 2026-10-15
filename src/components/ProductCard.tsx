@@ -17,13 +17,29 @@ export function ProductCard({ product }: ProductCardProps) {
   const slug = product.slug
   const rawImage = isCatalogProduct ? product.image : product.thumbnail?.url
   const categoryName = isCatalogProduct ? undefined : product.category?.name
-  const priceValue = isCatalogProduct
+  const rawPrice = isCatalogProduct
     ? product.price
     : product.pricing?.priceRange?.start?.gross?.amount || 0
 
+  // Calculate effective price: fallback to minimum child variant price if parent price is 0
+  let effectivePrice = rawPrice
+  let hasRange = false
+
+  if (isCatalogProduct && (!effectivePrice || effectivePrice === 0)) {
+    const childPrices = (product.variants || product.children || [])
+      .map((c) => c.price)
+      .filter((p) => p && p > 0)
+    if (childPrices.length > 0) {
+      effectivePrice = Math.min(...childPrices)
+      hasRange = true
+    }
+  }
+
   const [imgSrc, setImgSrc] = useState<string | null>(rawImage || null)
 
-  const formattedPrice = formatPrice(priceValue)
+  const formattedPrice = effectivePrice > 0
+    ? `${hasRange ? 'From ' : ''}${formatPrice(effectivePrice)}`
+    : 'Studio Inquire'
 
   return (
     <Link

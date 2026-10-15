@@ -195,8 +195,14 @@ function ProductDetailPage() {
   // Dynamically resolve matched child variant
   const matchedChild = findMatchingChild(product, selectedLabels)
 
+  const fallbackChildPrice =
+    (product.children || product.variants || []).find((c) => c.price > 0)?.price || 0
   const currentPrice =
-    matchedChild?.price && matchedChild.price > 0 ? matchedChild.price : product.price
+    matchedChild?.price && matchedChild.price > 0
+      ? matchedChild.price
+      : product.price > 0
+        ? product.price
+        : fallbackChildPrice
   const currentSku = matchedChild?.sku || product.sku
   const currentVariantName = matchedChild?.name || product.name
 
