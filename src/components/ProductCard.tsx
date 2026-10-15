@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { Package } from 'lucide-react'
 import { useState } from 'react'
-import type { CatalogProduct } from '~/lib/catalog'
+import { type CatalogProduct, getProductEffectivePrice } from '~/lib/catalog'
 import type { Product } from '~/lib/saleor/types'
 import { formatPrice } from '~/lib/utils'
 
@@ -17,23 +17,10 @@ export function ProductCard({ product }: ProductCardProps) {
   const slug = product.slug
   const rawImage = isCatalogProduct ? product.image : product.thumbnail?.url
   const categoryName = isCatalogProduct ? undefined : product.category?.name
-  const rawPrice = isCatalogProduct
-    ? product.price
+  const effectivePrice = isCatalogProduct
+    ? getProductEffectivePrice(product)
     : product.pricing?.priceRange?.start?.gross?.amount || 0
-
-  // Calculate effective price: fallback to minimum child variant price if parent price is 0
-  let effectivePrice = rawPrice
-  let hasRange = false
-
-  if (isCatalogProduct && (!effectivePrice || effectivePrice === 0)) {
-    const childPrices = (product.variants || product.children || [])
-      .map((c) => c.price)
-      .filter((p) => p && p > 0)
-    if (childPrices.length > 0) {
-      effectivePrice = Math.min(...childPrices)
-      hasRange = true
-    }
-  }
+  const hasRange = isCatalogProduct && (!product.price || product.price === 0) && (product.variants?.length || 0) > 0
 
   const [imgSrc, setImgSrc] = useState<string | null>(rawImage || null)
 

@@ -121,6 +121,14 @@ export function getAllCategories(): CatalogCategory[] {
   return Object.values(rawCategories)
 }
 
+export function getProductEffectivePrice(p: CatalogProduct): number {
+  if (p.price && p.price > 0) return p.price
+  const childPrices = (p.variants || p.children || [])
+    .map((c) => c.price)
+    .filter((pr) => pr && pr > 0)
+  return childPrices.length > 0 ? Math.min(...childPrices) : 0
+}
+
 /**
  * Get products by category slug (including products in child subcategories)
  */
@@ -164,16 +172,18 @@ export function getProductsByCategory(
   // Sort
   const sortBy = options?.sortBy || 'featured'
   if (sortBy === 'price-asc') {
-    matched.sort((a, b) => a.price - b.price)
+    matched.sort((a, b) => getProductEffectivePrice(a) - getProductEffectivePrice(b))
   } else if (sortBy === 'price-desc') {
-    matched.sort((a, b) => b.price - a.price)
+    matched.sort((a, b) => getProductEffectivePrice(b) - getProductEffectivePrice(a))
   } else if (sortBy === 'name') {
     matched.sort((a, b) => a.name.localeCompare(b.name))
   } else {
     // Featured: prioritize products with images and higher prices/configurable
     matched.sort((a, b) => {
-      const aScore = (a.image ? 10 : 0) + (a.options.length > 0 ? 5 : 0) + (a.price > 0 ? 2 : 0)
-      const bScore = (b.image ? 10 : 0) + (b.options.length > 0 ? 5 : 0) + (b.price > 0 ? 2 : 0)
+      const aPrice = getProductEffectivePrice(a)
+      const bPrice = getProductEffectivePrice(b)
+      const aScore = (a.image ? 10 : 0) + (a.options.length > 0 ? 5 : 0) + (aPrice > 0 ? 2 : 0)
+      const bScore = (b.image ? 10 : 0) + (b.options.length > 0 ? 5 : 0) + (bPrice > 0 ? 2 : 0)
       return bScore - aScore
     })
   }
