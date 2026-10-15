@@ -195,6 +195,13 @@ function ProductDetailPage() {
   // Dynamically resolve matched child variant
   const matchedChild = findMatchingChild(product, selectedLabels)
 
+  // Auto-switch main image when option changes and a matching child variant image is present
+  useEffect(() => {
+    if (matchedChild?.image) {
+      setActiveImage(matchedChild.image)
+    }
+  }, [matchedChild?.id, matchedChild?.image])
+
   const fallbackChildPrice =
     (product.children || product.variants || []).find((c) => c.price > 0)?.price || 0
   const currentPrice =
@@ -374,13 +381,19 @@ function ProductDetailPage() {
         {/* Purchase Info & Variant Selector */}
         <div className="flex flex-col space-y-6">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                In Stock
+                In Stock • Ready to Dispatch
               </span>
-              <span className="text-zinc-500">•</span>
-              <span className="text-xs font-mono text-zinc-400">SKU: {currentSku}</span>
+              <span className="text-zinc-600">•</span>
+              <span className="text-xs font-mono text-zinc-300 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded">
+                SKU: {currentSku}
+              </span>
+              <span className="text-zinc-600">•</span>
+              <span className="text-[11px] text-zinc-500 font-medium">
+                Default Warehouse
+              </span>
             </div>
 
             <h1 className="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl">
