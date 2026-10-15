@@ -284,7 +284,10 @@ function CartPage() {
                 </span>
                 <button
                   type="button"
-                  onClick={removeDiscount}
+                  onClick={() => {
+                    removeDiscount()
+                    setPromoFeedback(null)
+                  }}
                   className="rounded p-1 text-emerald-400 hover:text-white transition"
                 >
                   <X className="h-4 w-4" />
