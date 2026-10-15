@@ -178,9 +178,9 @@ export function Header() {
                   className="flex items-center gap-2 text-lg font-bold text-white"
                 >
                   <span className="flex h-7 w-7 items-center justify-center rounded bg-amber-500 font-black text-black">
-                    B
+                    A
                   </span>
-                  <span>AMBIOO</span>
+                  <span>AMBITION</span>
                 </Link>
                 <button
                   type="button"
@@ -203,7 +203,7 @@ export function Header() {
               >
                 <div className="flex items-center gap-2.5">
                   <Search className="h-4 w-4 text-amber-500" />
-                  <span>Search 1,049 products...</span>
+                  <span>Search professional products...</span>
                 </div>
                 <ChevronRight className="h-4 w-4 text-zinc-600" />
               </button>
@@ -274,7 +274,7 @@ export function Header() {
 
             {/* Drawer Footer */}
             <div className="border-t border-zinc-800 pt-4 mt-6 text-xs text-zinc-500 space-y-1">
-              <p className="font-semibold text-zinc-400">AMBIOO Official Supply</p>
+              <p className="font-semibold text-zinc-400">AMBITION Official Supply</p>
               <p className="text-[11px]">Powered by Saleor GraphQL & TanStack Start SSR</p>
             </div>
           </div>
@@ -293,7 +293,7 @@ export function Header() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search 1,049 products by name, SKU (e.g. Ambition, Storm, Needle, Wireless)..."
+                  placeholder="Search authentic Ambition products by name, SKU (e.g. Storm, Soldier, Grip, Cartridge)..."
                   className="w-full bg-transparent text-sm text-white placeholder-zinc-500 focus:outline-none"
                 />
               </div>

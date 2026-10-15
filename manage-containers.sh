@@ -65,7 +65,7 @@ case "$ACTION" in
     stop_containers
     ;;
   restart)
-    stop_containers
+    clean_containers
     sleep 1
     start_containers
     ;;

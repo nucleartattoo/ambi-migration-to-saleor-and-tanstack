@@ -28,6 +28,8 @@ export interface ProductChildVariant {
   sku: string
   name: string
   price: number
+  image?: string
+  attributes?: Record<string, string>
 }
 
 export interface CatalogProduct {
@@ -40,24 +42,27 @@ export interface CatalogProduct {
   image: string
   gallery: string[]
   category_ids: string[]
-  type: string
-  visibility: number
+  type_id?: string
+  type?: string
+  visibility?: number
   is_visible_individually: boolean
   options: ProductOption[]
-  children: ProductChildVariant[]
+  variants?: ProductChildVariant[]
+  children?: ProductChildVariant[]
   description: string
   short_description: string
 }
 
-const rawCategories: Record<string, CatalogCategory> = (catalogData.categories || {}) as Record<
-  string,
-  CatalogCategory
->
-const categoryDescendants: Record<string, string[]> = ((catalogData as any).category_descendants || {}) as Record<
-  string,
-  string[]
->
-const allProducts: CatalogProduct[] = (catalogData.products || []) as CatalogProduct[]
+const rawCategories: Record<string, CatalogCategory> = (catalogData.categories ||
+  {}) as unknown as Record<string, CatalogCategory>
+const categoryDescendants: Record<string, string[]> = ((catalogData as any).category_descendants ||
+  {}) as Record<string, string[]>
+const rawProducts = (catalogData.products || []) as unknown as any[]
+const allProducts: CatalogProduct[] = rawProducts.map((p) => ({
+  ...p,
+  children: p.children || p.variants || [],
+  variants: p.variants || p.children || [],
+}))
 
 // Top 7 Primary categories
 export const TOP_CATEGORY_IDS = ['51', '118', '55', '142', '54', '180', '58']

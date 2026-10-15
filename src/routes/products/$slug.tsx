@@ -15,7 +15,7 @@ import {
 import { useEffect, useState } from 'react'
 import { useCart } from '~/lib/cart'
 import { type CatalogProduct, type ProductChildVariant, getProductBySlug } from '~/lib/catalog'
-import { formatPrice } from '~/lib/utils'
+import { formatPrice, stripHtml } from '~/lib/utils'
 
 function findMatchingChild(
   product: CatalogProduct,
@@ -76,8 +76,9 @@ export const Route = createFileRoute('/products/$slug')({
       }
     }
     const title = `${product.name} | AMBI Professional Tattoo Supply`
+    const cleanShortDesc = stripHtml(product.short_description || '')
     const description =
-      product.short_description ||
+      cleanShortDesc ||
       `Buy authentic ${product.name} (SKU: ${product.sku}) at AMBI Official Store with 24-hour dispatch and full warranty.`
     return {
       meta: [
@@ -382,7 +383,7 @@ function ProductDetailPage() {
 
             {product.short_description && (
               <p className="mt-2 text-sm text-zinc-400 leading-relaxed">
-                {product.short_description}
+                {stripHtml(product.short_description)}
               </p>
             )}
 

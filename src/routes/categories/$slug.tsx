@@ -25,8 +25,7 @@ function CategoryPage() {
       : 'Explore high-performance tattoo equipment and accessories.'
 
   // Parent category link if applicable
-  const topCategories = getTopCategories()
-  const isTopCategory = topCategories.some((c) => c.slug === slug)
+  const _topCategories = getTopCategories()
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">

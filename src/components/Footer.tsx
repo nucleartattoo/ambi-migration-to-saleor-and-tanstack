@@ -78,8 +78,8 @@ export function Footer() {
         </div>
 
         <div className="mt-12 border-t border-zinc-800/80 pt-6 text-center text-xs text-zinc-600">
-          © {new Date().getFullYear()} Ambition Tattoo Supply. All rights reserved. Migrated to Saleor
-          + TanStack.
+          © {new Date().getFullYear()} Ambition Tattoo Supply. All rights reserved. Migrated to
+          Saleor + TanStack.
         </div>
       </div>
     </footer>
