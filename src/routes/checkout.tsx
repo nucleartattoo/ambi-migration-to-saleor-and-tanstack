@@ -1,5 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import {
+  AlertCircle,
   ArrowLeft,
   Building2,
   CheckCircle2,
@@ -83,8 +84,77 @@ function CheckoutPage() {
     cardholder: 'MARCUS VANCE',
   })
 
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [confirmedOrder, setConfirmedOrder] = useState<OrderConfirmationData | null>(null)
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email address is required'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      newErrors.email = 'Please enter a valid studio email address (e.g. artist@studio.com)'
+    }
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Phone number is required for delivery notifications'
+    } else if (formData.phone.trim().length < 7) {
+      newErrors.phone = 'Please enter a valid phone number'
+    }
+
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First name is required'
+    }
+
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required'
+    }
+
+    if (!formData.address.trim()) {
+      newErrors.address = 'Street address is required'
+    }
+
+    if (!formData.city.trim()) {
+      newErrors.city = 'City is required'
+    }
+
+    if (!formData.state.trim()) {
+      newErrors.state = 'State / Province is required'
+    }
+
+    if (!formData.postalCode.trim()) {
+      newErrors.postalCode = 'Postal code is required'
+    }
+
+    if (paymentMethod === 'card') {
+      if (!cardDetails.cardNumber.trim()) {
+        newErrors.cardNumber = 'Card number is required'
+      } else if (cardDetails.cardNumber.replace(/\s+/g, '').length < 12) {
+        newErrors.cardNumber = 'Please enter a valid card number'
+      }
+
+      if (!cardDetails.expDate.trim()) {
+        newErrors.expDate = 'Expiration date is required'
+      }
+
+      if (!cardDetails.cvc.trim()) {
+        newErrors.cvc = 'CVC is required'
+      }
+    }
+
+    return newErrors
+  }
+
+  const clearError = (field: string) => {
+    if (errors[field]) {
+      setErrors((prev) => {
+        const copy = { ...prev }
+        delete copy[field]
+        return copy
+      })
+    }
+  }
 
   // Shipping cost calculation based on method
   const shippingFee = shippingMethod === 'express' ? 19.99 : baseShippingCost
@@ -92,6 +162,18 @@ function CheckoutPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    const validationErrors = validateForm()
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors)
+      const firstErrorEl = document.querySelector('[data-has-error="true"]')
+      if (firstErrorEl) {
+        firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+      return
+    }
+
+    setErrors({})
     setIsSubmitting(true)
 
     // Execute Saleor GraphQL mutation simulation & recording
@@ -339,9 +421,19 @@ function CheckoutPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-10 lg:grid-cols-3">
+      <form onSubmit={handleSubmit} noValidate className="grid grid-cols-1 gap-10 lg:grid-cols-3">
         {/* Main form steps */}
         <div className="lg:col-span-2 space-y-8">
+          {Object.keys(errors).length > 0 && (
+            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-xs text-rose-400 flex items-center gap-2.5">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <span>
+                Please complete or correct the {Object.keys(errors).length} highlighted required{' '}
+                {Object.keys(errors).length === 1 ? 'field' : 'fields'} below before placing your order.
+              </span>
+            </div>
+          )}
+
           {/* Step 1: Customer Contact */}
           <section className="rounded-xl border border-zinc-800 bg-zinc-950 p-6 space-y-4">
             <div className="flex items-center justify-between">
@@ -357,20 +449,48 @@ function CheckoutPage() {
                 <input
                   type="email"
                   required
+                  data-has-error={Boolean(errors.email)}
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3.5 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
+                  onChange={(e) => {
+                    setFormData({ ...formData, email: e.target.value })
+                    clearError('email')
+                  }}
+                  className={`w-full rounded-lg border bg-zinc-900 px-3.5 py-2 text-xs text-white focus:outline-none transition ${
+                    errors.email
+                      ? 'border-rose-500 focus:border-rose-500 bg-rose-500/5'
+                      : 'border-zinc-800 focus:border-amber-500'
+                  }`}
                 />
+                {errors.email && (
+                  <p className="mt-1.5 text-[11px] text-rose-400 flex items-center gap-1 font-medium">
+                    <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                    <span>{errors.email}</span>
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-xs text-zinc-400 block mb-1">Phone Number *</label>
                 <input
                   type="tel"
                   required
+                  data-has-error={Boolean(errors.phone)}
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3.5 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
+                  onChange={(e) => {
+                    setFormData({ ...formData, phone: e.target.value })
+                    clearError('phone')
+                  }}
+                  className={`w-full rounded-lg border bg-zinc-900 px-3.5 py-2 text-xs text-white focus:outline-none transition ${
+                    errors.phone
+                      ? 'border-rose-500 focus:border-rose-500 bg-rose-500/5'
+                      : 'border-zinc-800 focus:border-amber-500'
+                  }`}
                 />
+                {errors.phone && (
+                  <p className="mt-1.5 text-[11px] text-rose-400 flex items-center gap-1 font-medium">
+                    <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                    <span>{errors.phone}</span>
+                  </p>
+                )}
               </div>
             </div>
           </section>
@@ -386,20 +506,48 @@ function CheckoutPage() {
                 <input
                   type="text"
                   required
+                  data-has-error={Boolean(errors.firstName)}
                   value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3.5 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
+                  onChange={(e) => {
+                    setFormData({ ...formData, firstName: e.target.value })
+                    clearError('firstName')
+                  }}
+                  className={`w-full rounded-lg border bg-zinc-900 px-3.5 py-2 text-xs text-white focus:outline-none transition ${
+                    errors.firstName
+                      ? 'border-rose-500 focus:border-rose-500 bg-rose-500/5'
+                      : 'border-zinc-800 focus:border-amber-500'
+                  }`}
                 />
+                {errors.firstName && (
+                  <p className="mt-1.5 text-[11px] text-rose-400 flex items-center gap-1 font-medium">
+                    <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                    <span>{errors.firstName}</span>
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-xs text-zinc-400 block mb-1">Last Name *</label>
                 <input
                   type="text"
                   required
+                  data-has-error={Boolean(errors.lastName)}
                   value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                  className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3.5 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
+                  onChange={(e) => {
+                    setFormData({ ...formData, lastName: e.target.value })
+                    clearError('lastName')
+                  }}
+                  className={`w-full rounded-lg border bg-zinc-900 px-3.5 py-2 text-xs text-white focus:outline-none transition ${
+                    errors.lastName
+                      ? 'border-rose-500 focus:border-rose-500 bg-rose-500/5'
+                      : 'border-zinc-800 focus:border-amber-500'
+                  }`}
                 />
+                {errors.lastName && (
+                  <p className="mt-1.5 text-[11px] text-rose-400 flex items-center gap-1 font-medium">
+                    <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                    <span>{errors.lastName}</span>
+                  </p>
+                )}
               </div>
             </div>
 
@@ -421,10 +569,24 @@ function CheckoutPage() {
                 <input
                   type="text"
                   required
+                  data-has-error={Boolean(errors.address)}
                   value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3.5 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
+                  onChange={(e) => {
+                    setFormData({ ...formData, address: e.target.value })
+                    clearError('address')
+                  }}
+                  className={`w-full rounded-lg border bg-zinc-900 px-3.5 py-2 text-xs text-white focus:outline-none transition ${
+                    errors.address
+                      ? 'border-rose-500 focus:border-rose-500 bg-rose-500/5'
+                      : 'border-zinc-800 focus:border-amber-500'
+                  }`}
                 />
+                {errors.address && (
+                  <p className="mt-1.5 text-[11px] text-rose-400 flex items-center gap-1 font-medium">
+                    <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                    <span>{errors.address}</span>
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-xs text-zinc-400 block mb-1">Apt / Suite / Studio</label>
@@ -443,30 +605,72 @@ function CheckoutPage() {
                 <input
                   type="text"
                   required
+                  data-has-error={Boolean(errors.city)}
                   value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3.5 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
+                  onChange={(e) => {
+                    setFormData({ ...formData, city: e.target.value })
+                    clearError('city')
+                  }}
+                  className={`w-full rounded-lg border bg-zinc-900 px-3.5 py-2 text-xs text-white focus:outline-none transition ${
+                    errors.city
+                      ? 'border-rose-500 focus:border-rose-500 bg-rose-500/5'
+                      : 'border-zinc-800 focus:border-amber-500'
+                  }`}
                 />
+                {errors.city && (
+                  <p className="mt-1.5 text-[11px] text-rose-400 flex items-center gap-1 font-medium">
+                    <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                    <span>{errors.city}</span>
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-xs text-zinc-400 block mb-1">State / Province *</label>
                 <input
                   type="text"
                   required
+                  data-has-error={Boolean(errors.state)}
                   value={formData.state}
-                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                  className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3.5 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
+                  onChange={(e) => {
+                    setFormData({ ...formData, state: e.target.value })
+                    clearError('state')
+                  }}
+                  className={`w-full rounded-lg border bg-zinc-900 px-3.5 py-2 text-xs text-white focus:outline-none transition ${
+                    errors.state
+                      ? 'border-rose-500 focus:border-rose-500 bg-rose-500/5'
+                      : 'border-zinc-800 focus:border-amber-500'
+                  }`}
                 />
+                {errors.state && (
+                  <p className="mt-1.5 text-[11px] text-rose-400 flex items-center gap-1 font-medium">
+                    <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                    <span>{errors.state}</span>
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-xs text-zinc-400 block mb-1">Postal Code *</label>
                 <input
                   type="text"
                   required
+                  data-has-error={Boolean(errors.postalCode)}
                   value={formData.postalCode}
-                  onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-                  className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3.5 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
+                  onChange={(e) => {
+                    setFormData({ ...formData, postalCode: e.target.value })
+                    clearError('postalCode')
+                  }}
+                  className={`w-full rounded-lg border bg-zinc-900 px-3.5 py-2 text-xs text-white focus:outline-none transition ${
+                    errors.postalCode
+                      ? 'border-rose-500 focus:border-rose-500 bg-rose-500/5'
+                      : 'border-zinc-800 focus:border-amber-500'
+                  }`}
                 />
+                {errors.postalCode && (
+                  <p className="mt-1.5 text-[11px] text-rose-400 flex items-center gap-1 font-medium">
+                    <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                    <span>{errors.postalCode}</span>
+                  </p>
+                )}
               </div>
             </div>
           </section>
@@ -582,35 +786,77 @@ function CheckoutPage() {
             {paymentMethod === 'card' && (
               <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 space-y-3">
                 <div>
-                  <label className="text-[11px] text-zinc-400 block mb-1">Card Number</label>
+                  <label className="text-[11px] text-zinc-400 block mb-1">Card Number *</label>
                   <input
                     type="text"
                     required
+                    data-has-error={Boolean(errors.cardNumber)}
                     value={cardDetails.cardNumber}
-                    onChange={(e) => setCardDetails({ ...cardDetails, cardNumber: e.target.value })}
-                    className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-white focus:border-amber-500 focus:outline-none font-mono"
+                    onChange={(e) => {
+                      setCardDetails({ ...cardDetails, cardNumber: e.target.value })
+                      clearError('cardNumber')
+                    }}
+                    className={`w-full rounded-lg border bg-zinc-900 px-3 py-2 text-xs text-white focus:outline-none font-mono transition ${
+                      errors.cardNumber
+                        ? 'border-rose-500 focus:border-rose-500 bg-rose-500/5'
+                        : 'border-zinc-800 focus:border-amber-500'
+                    }`}
                   />
+                  {errors.cardNumber && (
+                    <p className="mt-1.5 text-[11px] text-rose-400 flex items-center gap-1 font-medium">
+                      <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                      <span>{errors.cardNumber}</span>
+                    </p>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] text-zinc-400 block mb-1">Expires (MM/YY)</label>
+                    <label className="text-[11px] text-zinc-400 block mb-1">Expires (MM/YY) *</label>
                     <input
                       type="text"
                       required
+                      data-has-error={Boolean(errors.expDate)}
                       value={cardDetails.expDate}
-                      onChange={(e) => setCardDetails({ ...cardDetails, expDate: e.target.value })}
-                      className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-white focus:border-amber-500 focus:outline-none font-mono"
+                      onChange={(e) => {
+                        setCardDetails({ ...cardDetails, expDate: e.target.value })
+                        clearError('expDate')
+                      }}
+                      className={`w-full rounded-lg border bg-zinc-900 px-3 py-2 text-xs text-white focus:outline-none font-mono transition ${
+                        errors.expDate
+                          ? 'border-rose-500 focus:border-rose-500 bg-rose-500/5'
+                          : 'border-zinc-800 focus:border-amber-500'
+                      }`}
                     />
+                    {errors.expDate && (
+                      <p className="mt-1.5 text-[11px] text-rose-400 flex items-center gap-1 font-medium">
+                        <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                        <span>{errors.expDate}</span>
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <label className="text-[11px] text-zinc-400 block mb-1">CVC Code</label>
+                    <label className="text-[11px] text-zinc-400 block mb-1">CVC Code *</label>
                     <input
                       type="text"
                       required
+                      data-has-error={Boolean(errors.cvc)}
                       value={cardDetails.cvc}
-                      onChange={(e) => setCardDetails({ ...cardDetails, cvc: e.target.value })}
-                      className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-white focus:border-amber-500 focus:outline-none font-mono"
+                      onChange={(e) => {
+                        setCardDetails({ ...cardDetails, cvc: e.target.value })
+                        clearError('cvc')
+                      }}
+                      className={`w-full rounded-lg border bg-zinc-900 px-3 py-2 text-xs text-white focus:outline-none font-mono transition ${
+                        errors.cvc
+                          ? 'border-rose-500 focus:border-rose-500 bg-rose-500/5'
+                          : 'border-zinc-800 focus:border-amber-500'
+                      }`}
                     />
+                    {errors.cvc && (
+                      <p className="mt-1.5 text-[11px] text-rose-400 flex items-center gap-1 font-medium">
+                        <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                        <span>{errors.cvc}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
