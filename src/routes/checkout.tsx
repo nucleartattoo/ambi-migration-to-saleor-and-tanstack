@@ -21,6 +21,18 @@ import { createSaleorCheckout } from '~/lib/saleor/api'
 import { formatPrice } from '~/lib/utils'
 
 export const Route = createFileRoute('/checkout')({
+  head: () => ({
+    meta: [
+      { title: 'Secure Checkout | Ambition Tattoo Supply Official Store' },
+      {
+        name: 'description',
+        content:
+          'Secure 256-bit SSL encrypted checkout for Ambition Tattoo Supply professional tattoo machines, needles, and equipment orders.',
+      },
+      { name: 'robots', content: 'noindex, nofollow, noarchive' },
+    ],
+    links: [{ rel: 'canonical', href: 'https://www.ambitiontattoosupply.com/checkout' }],
+  }),
   component: CheckoutPage,
 })
 
