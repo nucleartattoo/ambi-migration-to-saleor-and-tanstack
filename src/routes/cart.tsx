@@ -18,6 +18,17 @@ import { useCart } from '~/lib/cart'
 import { formatPrice } from '~/lib/utils'
 
 export const Route = createFileRoute('/cart')({
+  head: () => ({
+    meta: [
+      { title: 'Shopping Cart | Ambition Tattoo Supply Official Store' },
+      {
+        name: 'description',
+        content:
+          'Review your studio tattoo machines, cartridge needles, and equipment orders before secure checkout at Ambition Tattoo Supply.',
+      },
+      { name: 'robots', content: 'noindex, nofollow' },
+    ],
+  }),
   component: CartPage,
 })
 
