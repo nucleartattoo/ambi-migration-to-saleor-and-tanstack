@@ -2,8 +2,10 @@ import type { QueryClient } from '@tanstack/react-query'
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { CategoryNav } from '~/components/CategoryNav'
+import { ErrorBoundaryComponent } from '~/components/ErrorBoundary'
 import { Footer } from '~/components/Footer'
 import { Header } from '~/components/Header'
+import { NotFoundComponent } from '~/components/NotFound'
 import styles from '~/styles.css?url'
 
 interface RootContext {
@@ -25,6 +27,8 @@ export const Route = createRootRouteWithContext<RootContext>()({
     links: [{ rel: 'stylesheet', href: styles }],
   }),
   component: RootComponent,
+  notFoundComponent: NotFoundComponent,
+  errorComponent: ErrorBoundaryComponent,
 })
 
 function RootComponent() {
