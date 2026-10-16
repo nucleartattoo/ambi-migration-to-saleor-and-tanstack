@@ -1,7 +1,10 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import {
+  ArrowRight,
   ChevronRight,
   Command,
+  CornerDownLeft,
+  Flame,
   Menu,
   Package,
   Search,
@@ -13,16 +16,32 @@ import {
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useCart } from '~/lib/cart'
-import { type CatalogProduct, getTopCategories, searchProducts } from '~/lib/catalog'
+import {
+  type CatalogProduct,
+  getProductEffectivePrice,
+  getTopCategories,
+  searchProducts,
+} from '~/lib/catalog'
 import { formatPrice } from '~/lib/utils'
+
+const QUICK_SEARCH_TAGS = [
+  'Storm Wand',
+  'Soldier',
+  'Cartridge Needles',
+  'Wireless Battery',
+  'Ninja Pro',
+  'Disposable Grips',
+]
 
 export function Header() {
   const topCategories = getTopCategories()
   const { totalItems } = useCart()
+  const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<CatalogProduct[]>([])
+  const [selectedIndex, setSelectedIndex] = useState<number>(-1)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // ⌘K / Ctrl+K keyboard shortcut
@@ -43,16 +62,42 @@ export function Header() {
   useEffect(() => {
     if (searchQuery.trim().length > 1) {
       setSearchResults(searchProducts(searchQuery, 8))
+      setSelectedIndex(0)
     } else {
       setSearchResults([])
+      setSelectedIndex(-1)
     }
   }, [searchQuery])
 
   useEffect(() => {
     if (searchOpen) {
       setTimeout(() => inputRef.current?.focus(), 60)
+    } else {
+      setSelectedIndex(-1)
     }
   }, [searchOpen])
+
+  // Handle keyboard navigation inside search modal
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (searchResults.length === 0) return
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSelectedIndex((prev) => (prev + 1) % searchResults.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSelectedIndex((prev) => (prev - 1 + searchResults.length) % searchResults.length)
+    } else if (e.key === 'Enter' && selectedIndex >= 0 && selectedIndex < searchResults.length) {
+      e.preventDefault()
+      const target = searchResults[selectedIndex]
+      setSearchOpen(false)
+      setSearchQuery('')
+      navigate({
+        to: '/products/$slug',
+        params: { slug: target.slug },
+      })
+    }
+  }
 
   return (
     <>
@@ -283,19 +328,54 @@ export function Header() {
 
       {/* Interactive Search Modal */}
       {searchOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/80 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <div className="flex items-center gap-3 flex-1">
-                <Search className="h-5 w-5 text-amber-500" />
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/80 backdrop-blur-sm transition-opacity"
+          onClick={() => {
+            setSearchOpen(false)
+            setSearchQuery('')
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setSearchOpen(false)
+              setSearchQuery('')
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Close search backdrop"
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl relative"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="region"
+            aria-label="Product Search Dialog"
+          >
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3 gap-2">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <Search className="h-5 w-5 text-amber-500 flex-shrink-0" />
                 <input
                   ref={inputRef}
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
                   placeholder="Search authentic Ambition products by name, SKU (e.g. Storm, Soldier, Grip, Cartridge)..."
                   className="w-full bg-transparent text-sm text-white placeholder-zinc-500 focus:outline-none"
                 />
+                {searchQuery.trim().length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('')
+                      inputRef.current?.focus()
+                    }}
+                    className="rounded-full p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white transition"
+                    aria-label="Clear input"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
               <button
                 type="button"
@@ -303,65 +383,128 @@ export function Header() {
                   setSearchOpen(false)
                   setSearchQuery('')
                 }}
-                className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white transition flex-shrink-0"
                 aria-label="Close search"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
+            {/* Status bar */}
+            {searchResults.length > 0 && (
+              <div className="mt-2.5 flex items-center justify-between px-1 text-[11px] text-zinc-400">
+                <span>
+                  Found <strong className="text-amber-400">{searchResults.length}</strong> matching products
+                </span>
+                <span className="hidden sm:inline-flex items-center gap-1.5 text-zinc-500 font-mono text-[10px]">
+                  <span>Navigate with</span>
+                  <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1 py-0.2 text-zinc-400">↑</kbd>
+                  <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1 py-0.2 text-zinc-400">↓</kbd>
+                  <span>Select with</span>
+                  <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1 py-0.2 text-zinc-400">↵ Enter</kbd>
+                </span>
+              </div>
+            )}
+
             {/* Results */}
-            <div className="mt-4 max-h-96 overflow-y-auto space-y-2">
+            <div className="mt-3 max-h-96 overflow-y-auto space-y-2">
               {searchResults.length > 0 ? (
-                searchResults.map((product) => (
-                  <Link
-                    key={product.id}
-                    to="/products/$slug"
-                    params={{ slug: product.slug }}
-                    onClick={() => {
-                      setSearchOpen(false)
-                      setSearchQuery('')
-                    }}
-                    className="flex items-center justify-between gap-4 rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-3 hover:border-amber-500/50 hover:bg-zinc-800/60 transition"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center">
-                        {product.image ? (
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="h-full w-full object-contain p-1"
-                          />
-                        ) : (
-                          <Package className="h-5 w-5 text-zinc-600" />
+                searchResults.map((product, idx) => {
+                  const effectivePrice = getProductEffectivePrice(product)
+                  const hasVariants =
+                    (product.options && product.options.length > 0) ||
+                    (product.children && product.children.length > 0)
+                  const isSelected = idx === selectedIndex
+
+                  return (
+                    <Link
+                      key={product.id}
+                      to="/products/$slug"
+                      params={{ slug: product.slug }}
+                      onClick={() => {
+                        setSearchOpen(false)
+                        setSearchQuery('')
+                      }}
+                      onMouseEnter={() => setSelectedIndex(idx)}
+                      className={`flex items-center justify-between gap-4 rounded-xl border p-3 transition ${
+                        isSelected
+                          ? 'border-amber-500 bg-zinc-800/90 shadow-md ring-1 ring-amber-500/30'
+                          : 'border-zinc-800/80 bg-zinc-950/60 hover:border-amber-500/50 hover:bg-zinc-800/60'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+                          {product.image ? (
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="h-full w-full object-contain p-1"
+                            />
+                          ) : (
+                            <Package className="h-5 w-5 text-zinc-600" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-semibold text-white truncate">
+                            {product.name}
+                          </h4>
+                          <span className="text-[10px] text-zinc-400 font-mono">
+                            SKU: {product.sku}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-xs font-bold text-amber-400 whitespace-nowrap">
+                          {hasVariants && <span className="text-[10px] font-normal text-zinc-400 mr-0.5">From </span>}
+                          {formatPrice(effectivePrice)}
+                        </span>
+                        {isSelected && (
+                          <span className="hidden sm:inline-flex items-center gap-0.5 rounded bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-mono font-bold text-amber-400 border border-amber-500/30">
+                            ↵ View
+                          </span>
                         )}
                       </div>
-                      <div>
-                        <h4 className="text-xs font-semibold text-white line-clamp-1">
-                          {product.name}
-                        </h4>
-                        <span className="text-[10px] text-zinc-400 font-mono">
-                          SKU: {product.sku}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-xs font-bold text-amber-400 whitespace-nowrap">
-                      {formatPrice(product.price)}
-                    </span>
-                  </Link>
-                ))
+                    </Link>
+                  )
+                })
               ) : searchQuery.trim().length > 1 ? (
                 <div className="py-8 text-center text-xs text-zinc-500">
                   No matching products found in the catalog.
                 </div>
               ) : (
-                <div className="py-6 text-center text-xs text-zinc-500 flex flex-col items-center gap-2">
-                  <Command className="h-6 w-6 text-zinc-700" />
-                  <span>Type at least 2 characters to search across all 1,049 products.</span>
-                  <span className="text-[11px] text-zinc-600">
-                    Pro-tip: Press <kbd className="font-mono text-zinc-400">Esc</kbd> anytime to
-                    close.
-                  </span>
+                <div className="py-5 px-2">
+                  <div className="text-center text-xs text-zinc-500 flex flex-col items-center gap-2 mb-4">
+                    <Command className="h-6 w-6 text-zinc-600" />
+                    <span>Type at least 2 characters to search across all 1,049 products.</span>
+                  </div>
+
+                  {/* Popular quick searches */}
+                  <div className="border-t border-zinc-800/80 pt-3">
+                    <div className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-400 mb-2">
+                      <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                      <span>Popular Studio Searches:</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {QUICK_SEARCH_TAGS.map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => {
+                            setSearchQuery(tag)
+                            inputRef.current?.focus()
+                          }}
+                          className="rounded-lg border border-zinc-800 bg-zinc-950/80 px-2.5 py-1 text-[11px] font-medium text-zinc-300 hover:border-amber-500/50 hover:bg-zinc-800 hover:text-amber-400 transition"
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-500">
+                    <span>Press <kbd className="font-mono text-zinc-400 bg-zinc-800 px-1 py-0.5 rounded border border-zinc-700">Esc</kbd> or click outside to dismiss.</span>
+                    <span className="font-mono">Ambition x Saleor</span>
+                  </div>
                 </div>
               )}
             </div>
