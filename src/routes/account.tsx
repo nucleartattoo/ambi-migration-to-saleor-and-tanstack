@@ -21,6 +21,18 @@ import { cartStore } from '~/lib/cart'
 import { formatPrice } from '~/lib/utils'
 
 export const Route = createFileRoute('/account')({
+  head: () => ({
+    meta: [
+      { title: 'Studio Partner Account | Ambition Tattoo Supply Official Store' },
+      {
+        name: 'description',
+        content:
+          'Manage your Ambition Tattoo Supply studio wholesale account, live order tracking, and delivery addresses.',
+      },
+      { name: 'robots', content: 'noindex, nofollow, noarchive' },
+    ],
+    links: [{ rel: 'canonical', href: 'https://www.ambitiontattoosupply.com/account' }],
+  }),
   component: AccountPage,
 })
 
