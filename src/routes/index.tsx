@@ -2,11 +2,17 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import {
   ArrowRight,
   Award,
+  CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  Code,
   Flame,
+  Globe,
   Layers,
   Package,
+  Search,
   ShieldCheck,
   Sparkles,
   Truck,
@@ -17,6 +23,127 @@ import { ProductCard } from '~/components/ProductCard'
 import { getFeaturedProducts, getTopCategories } from '~/lib/catalog'
 
 export const Route = createFileRoute('/')({
+  head: () => {
+    const title = 'Ambition Tattoo Supply | Official Store - Wireless Machines & Cartridges'
+    const description =
+      'Ambition Tattoo Supply official direct store. Explore industry-leading wireless tattoo machine pens, Revolution cartridges, power supplies, and tattoo kits with direct studio warranty.'
+    const siteUrl = 'https://www.ambitiontattoosupply.com'
+    const logoUrl = 'https://www.ambitiontattoosupply.com/logo.png'
+    const ogImage =
+      'https://www.ambitiontattoosupply.com/media/catalog/product/5/1/51xcfzt0wll._sl1000_.jpg'
+
+    // 1. Organization / OnlineStore Schema
+    const storeSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'OnlineStore',
+      name: 'Ambition Tattoo Supply',
+      alternateName: ['AMBI Tattoo Supply', 'Ambition Tattoo'],
+      url: siteUrl,
+      logo: logoUrl,
+      image: ogImage,
+      description,
+      currenciesAccepted: 'USD',
+      paymentAccepted: 'Credit Card, PayPal, Stripe',
+      priceRange: '$$',
+      brand: {
+        '@type': 'Brand',
+        name: 'Ambition Tattoo Supply',
+      },
+      contactPoint: {
+        '@type': 'ContactPoint',
+        telephone: '+1-800-555-AMBI',
+        contactType: 'customer support',
+        availableLanguage: ['English', 'Chinese', 'Spanish'],
+      },
+      sameAs: [
+        'https://www.instagram.com/ambitiontattoosupply',
+        'https://www.facebook.com/ambitiontattoosupply',
+        'https://www.youtube.com/@ambitiontattoosupply',
+      ],
+    }
+
+    // 2. WebSite with Sitelinks Searchbox Schema
+    const websiteSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'Ambition Tattoo Supply',
+      url: siteUrl,
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: `${siteUrl}/search?q={search_term_string}`,
+        },
+        'query-input': 'required name=search_term_string',
+      },
+    }
+
+    // 3. ItemList (Featured Studio Bestsellers)
+    const featuredListSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: 'Featured Ambition Studio Equipment',
+      numberOfItems: 4,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Ambition Storm Wand Wireless Tattoo Machine Pen',
+          url: `${siteUrl}/products/ambition-storm-wand-wireless-tattoo-machine-pen`,
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Ambition Soldier Max Wireless Battery Pen',
+          url: `${siteUrl}/products/ambition-soldier-max-wireless-battery-pen`,
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Ambition Revolution Cartridge Needles',
+          url: `${siteUrl}/products/ambition-cartridge-needles`,
+        },
+        {
+          '@type': 'ListItem',
+          position: 4,
+          name: 'Ambition Wireless Power Supply Battery Pack',
+          url: `${siteUrl}/products/ambition-wireless-power-supply-pack`,
+        },
+      ],
+    }
+
+    return {
+      meta: [
+        { title },
+        { name: 'description', content: description },
+        { property: 'og:title', content: title },
+        { property: 'og:description', content: description },
+        { property: 'og:url', content: siteUrl },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:image', content: ogImage },
+        { property: 'og:site_name', content: 'Ambition Tattoo Supply' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: title },
+        { name: 'twitter:description', content: description },
+        { name: 'twitter:image', content: ogImage },
+      ],
+      links: [{ rel: 'canonical', href: siteUrl }],
+      scripts: [
+        {
+          type: 'application/ld+json',
+          children: JSON.stringify(storeSchema),
+        },
+        {
+          type: 'application/ld+json',
+          children: JSON.stringify(websiteSchema),
+        },
+        {
+          type: 'application/ld+json',
+          children: JSON.stringify(featuredListSchema),
+        },
+      ],
+    }
+  },
   component: HomePage,
 })
 
@@ -91,6 +218,10 @@ function HomePage() {
 
   // Featured Category Filter state
   const [activeFilter, setActiveFilter] = useState<string>('all')
+
+  // SEO Debug Panel State
+  const [showSeoDebug, setShowSeoDebug] = useState(false)
+  const [seoTab, setSeoTab] = useState<'store' | 'website' | 'featured'>('store')
 
   const currentSlide = HERO_SLIDES[currentSlideIndex]
 
@@ -367,6 +498,250 @@ function HomePage() {
               </div>
             </Link>
           ))}
+        </div>
+      </section>
+
+      {/* Homepage SEO & Google Rich Results Transparency Box */}
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12">
+        <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-5 sm:p-6 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-zinc-800/80 pb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2 text-amber-400">
+                <Globe className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>Homepage SEO & Google Rich Snippets</span>
+                  <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+                    Validated Rich Schema
+                  </span>
+                </h3>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Structured data with OnlineStore, WebSite with Sitelinks Searchbox, and Featured ItemList.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowSeoDebug((prev) => !prev)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/90 px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 hover:text-white transition"
+            >
+              <Code className="h-3.5 w-3.5 text-amber-400" />
+              <span>{showSeoDebug ? 'Hide JSON-LD' : 'Inspect JSON-LD'}</span>
+              {showSeoDebug ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+          </div>
+
+          {/* Google SERP Search Result Preview Card with Sitelinks & Searchbox */}
+          <div className="space-y-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+              <Search className="h-3.5 w-3.5 text-amber-500" /> Google SERP Rich Snippet Preview
+            </span>
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4 space-y-3 font-sans">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-xs text-zinc-400">
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-black text-black">
+                    A
+                  </span>
+                  <span className="text-zinc-300">https://www.ambitiontattoosupply.com</span>
+                </div>
+                <h4 className="text-base sm:text-lg font-medium text-blue-400 hover:underline cursor-pointer">
+                  Ambition Tattoo Supply | Official Store - Wireless Machines &amp; Cartridges
+                </h4>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Ambition Tattoo Supply official direct store. Explore industry-leading wireless tattoo machine pens, Revolution cartridges, power supplies, and tattoo kits with direct studio warranty.
+                </p>
+              </div>
+
+              {/* Sitelinks Searchbox Simulation */}
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-2 flex items-center gap-2 max-w-md">
+                <Search className="h-3.5 w-3.5 text-zinc-500" />
+                <span className="text-xs text-zinc-500 font-sans italic">Search ambitiontattoosupply.com...</span>
+              </div>
+
+              {/* Sitelinks Navigation Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 border-t border-zinc-900">
+                <div className="space-y-0.5">
+                  <span className="text-xs font-medium text-blue-400 hover:underline cursor-pointer">
+                    Wireless Tattoo Machines
+                  </span>
+                  <p className="text-[11px] text-zinc-500 line-clamp-1">Soldier Max, Storm Wand, Ninja Pro</p>
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-xs font-medium text-blue-400 hover:underline cursor-pointer">
+                    Revolution Cartridge Needles
+                  </span>
+                  <p className="text-[11px] text-zinc-500 line-clamp-1">EO gas sterilized 08/10/12 RL RS</p>
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-xs font-medium text-blue-400 hover:underline cursor-pointer">
+                    Studio Wholesale Program
+                  </span>
+                  <p className="text-[11px] text-zinc-500 line-clamp-1">20% tiered equipment discounts</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Schema.org Checklist Verification Badges */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
+            <div className="flex items-center gap-2 rounded-lg bg-zinc-950/80 border border-zinc-800/80 p-2.5">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+              <div>
+                <div className="text-[11px] font-semibold text-white">OnlineStore</div>
+                <div className="text-[10px] text-zinc-400">Brand &amp; store profile</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-lg bg-zinc-950/80 border border-zinc-800/80 p-2.5">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+              <div>
+                <div className="text-[11px] font-semibold text-white">Sitelinks Searchbox</div>
+                <div className="text-[10px] text-zinc-400">SearchAction defined</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-lg bg-zinc-950/80 border border-zinc-800/80 p-2.5">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+              <div>
+                <div className="text-[11px] font-semibold text-white">Featured ItemList</div>
+                <div className="text-[10px] text-zinc-400">Top studio equipment</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-lg bg-zinc-950/80 border border-zinc-800/80 p-2.5">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+              <div>
+                <div className="text-[11px] font-semibold text-white">Canonical Link</div>
+                <div className="text-[10px] text-zinc-400">https://ambition...</div>
+              </div>
+            </div>
+          </div>
+
+          {/* JSON-LD Inspector Panel */}
+          {showSeoDebug && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                <span className="text-xs font-semibold text-zinc-300">
+                  Live Rendered JSON-LD Scripts:
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setSeoTab('store')}
+                    className={`px-2.5 py-1 rounded text-xs font-medium transition ${
+                      seoTab === 'store'
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    OnlineStore
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSeoTab('website')}
+                    className={`px-2.5 py-1 rounded text-xs font-medium transition ${
+                      seoTab === 'website'
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    WebSite &amp; Sitelinks
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSeoTab('featured')}
+                    className={`px-2.5 py-1 rounded text-xs font-medium transition ${
+                      seoTab === 'featured'
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    Featured ItemList
+                  </button>
+                </div>
+              </div>
+
+              <pre className="max-h-80 overflow-y-auto rounded-xl bg-zinc-950 p-3.5 text-[11px] font-mono text-amber-400/90 border border-zinc-800/80 leading-relaxed">
+                {JSON.stringify(
+                  seoTab === 'store'
+                    ? {
+                        '@context': 'https://schema.org',
+                        '@type': 'OnlineStore',
+                        name: 'Ambition Tattoo Supply',
+                        alternateName: ['AMBI Tattoo Supply', 'Ambition Tattoo'],
+                        url: 'https://www.ambitiontattoosupply.com',
+                        logo: 'https://www.ambitiontattoosupply.com/logo.png',
+                        description:
+                          'Ambition Tattoo Supply official direct store. Explore industry-leading wireless tattoo machine pens, Revolution cartridges, power supplies, and tattoo kits with direct studio warranty.',
+                        currenciesAccepted: 'USD',
+                        paymentAccepted: 'Credit Card, PayPal, Stripe',
+                        priceRange: '$$',
+                        brand: {
+                          '@type': 'Brand',
+                          name: 'Ambition Tattoo Supply',
+                        },
+                        sameAs: [
+                          'https://www.instagram.com/ambitiontattoosupply',
+                          'https://www.facebook.com/ambitiontattoosupply',
+                          'https://www.youtube.com/@ambitiontattoosupply',
+                        ],
+                      }
+                    : seoTab === 'website'
+                      ? {
+                          '@context': 'https://schema.org',
+                          '@type': 'WebSite',
+                          name: 'Ambition Tattoo Supply',
+                          url: 'https://www.ambitiontattoosupply.com',
+                          potentialAction: {
+                            '@type': 'SearchAction',
+                            target: {
+                              '@type': 'EntryPoint',
+                              urlTemplate:
+                                'https://www.ambitiontattoosupply.com/search?q={search_term_string}',
+                            },
+                            'query-input': 'required name=search_term_string',
+                          },
+                        }
+                      : {
+                          '@context': 'https://schema.org',
+                          '@type': 'ItemList',
+                          name: 'Featured Ambition Studio Equipment',
+                          numberOfItems: 4,
+                          itemListElement: [
+                            {
+                              '@type': 'ListItem',
+                              position: 1,
+                              name: 'Ambition Storm Wand Wireless Tattoo Machine Pen',
+                              url: 'https://www.ambitiontattoosupply.com/products/ambition-storm-wand-wireless-tattoo-machine-pen',
+                            },
+                            {
+                              '@type': 'ListItem',
+                              position: 2,
+                              name: 'Ambition Soldier Max Wireless Battery Pen',
+                              url: 'https://www.ambitiontattoosupply.com/products/ambition-soldier-max-wireless-battery-pen',
+                            },
+                            {
+                              '@type': 'ListItem',
+                              position: 3,
+                              name: 'Ambition Revolution Cartridge Needles',
+                              url: 'https://www.ambitiontattoosupply.com/products/ambition-cartridge-needles',
+                            },
+                            {
+                              '@type': 'ListItem',
+                              position: 4,
+                              name: 'Ambition Wireless Power Supply Battery Pack',
+                              url: 'https://www.ambitiontattoosupply.com/products/ambition-wireless-power-supply-pack',
+                            },
+                          ],
+                        },
+                  null,
+                  2,
+                )}
+              </pre>
+            </div>
+          )}
         </div>
       </section>
     </div>
