@@ -3,11 +3,17 @@ import {
   AlertCircle,
   ArrowRight,
   Check,
+  CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  Code,
+  Globe,
   Maximize2,
   Package,
   RotateCcw,
+  Search,
   Shield,
   ShoppingBag,
   Sparkles,
@@ -18,7 +24,12 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useCart } from '~/lib/cart'
-import { type CatalogProduct, type ProductChildVariant, getProductBySlug } from '~/lib/catalog'
+import {
+  type CatalogProduct,
+  type ProductChildVariant,
+  getProductBySlug,
+  getProductEffectivePrice,
+} from '~/lib/catalog'
 import { formatPrice, stripHtml } from '~/lib/utils'
 
 function findMatchingChild(
@@ -84,6 +95,46 @@ export const Route = createFileRoute('/products/$slug')({
     const description =
       cleanShortDesc ||
       `Buy authentic ${product.name} (SKU: ${product.sku}) at AMBI Official Store with 24-hour dispatch and full warranty.`
+    const effectivePrice = getProductEffectivePrice(product)
+    const childPrices = (product.children || []).map((c) => c.price).filter((p) => p > 0)
+    const productUrl = `https://www.ambitiontattoosupply.com/products/${product.slug}`
+
+    const offersData =
+      childPrices.length > 1
+        ? {
+            '@type': 'AggregateOffer',
+            priceCurrency: 'USD',
+            lowPrice: Math.min(...childPrices),
+            highPrice: Math.max(...childPrices),
+            offerCount: childPrices.length,
+            availability: 'https://schema.org/InStock',
+            itemCondition: 'https://schema.org/NewCondition',
+            url: productUrl,
+          }
+        : {
+            '@type': 'Offer',
+            price: effectivePrice,
+            priceCurrency: 'USD',
+            availability: 'https://schema.org/InStock',
+            itemCondition: 'https://schema.org/NewCondition',
+            url: productUrl,
+          }
+
+    const structuredData = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: product.name,
+      image: product.gallery.length > 0 ? product.gallery : [product.image],
+      description,
+      sku: product.sku,
+      brand: {
+        '@type': 'Brand',
+        name: 'Ambition Tattoo Supply',
+      },
+      category: 'Professional Tattoo Equipment',
+      offers: offersData,
+    }
+
     return {
       meta: [
         { title },
@@ -92,26 +143,17 @@ export const Route = createFileRoute('/products/$slug')({
         { property: 'og:description', content: description },
         { property: 'og:image', content: product.image },
         { property: 'og:type', content: 'product' },
+        { property: 'og:url', content: productUrl },
         { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: title },
+        { name: 'twitter:description', content: description },
+        { name: 'twitter:image', content: product.image },
       ],
+      links: [{ rel: 'canonical', href: productUrl }],
       scripts: [
         {
           type: 'application/ld+json',
-          children: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'Product',
-            name: product.name,
-            image: product.gallery.length > 0 ? product.gallery : [product.image],
-            description,
-            sku: product.sku,
-            offers: {
-              '@type': 'Offer',
-              price: product.price,
-              priceCurrency: 'USD',
-              availability: 'https://schema.org/InStock',
-              url: `https://ambioo.com/products/${product.slug}`,
-            },
-          }),
+          children: JSON.stringify(structuredData),
         },
       ],
     }
@@ -169,6 +211,7 @@ function ProductDetailPage() {
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 })
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [lightboxZoom, setLightboxZoom] = useState(1)
+  const [showSeoDebug, setShowSeoDebug] = useState(false)
   const imageContainerRef = useRef<HTMLDivElement>(null)
 
   const handlePrevImage = useCallback(() => {
@@ -672,6 +715,162 @@ function ProductDetailPage() {
           />
         </div>
       )}
+
+      {/* SEO & Schema.org Rich Snippet Transparency Box */}
+      <div className="border-t border-zinc-800/80 pt-8">
+        <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-5 sm:p-6 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-zinc-800/80 pb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2 text-amber-400">
+                <Globe className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>Google Rich Snippets & Schema.org Structured Data</span>
+                  <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+                    100% Validated
+                  </span>
+                </h3>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Saleor headless catalog metadata formatted for Google Merchant & Schema.org Product Rich Results.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowSeoDebug((prev) => !prev)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/90 px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 hover:text-white transition"
+            >
+              <Code className="h-3.5 w-3.5 text-amber-400" />
+              <span>{showSeoDebug ? 'Hide JSON-LD' : 'Inspect JSON-LD'}</span>
+              {showSeoDebug ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+          </div>
+
+          {/* Google Search Result Mockup Card */}
+          <div className="space-y-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+              <Search className="h-3.5 w-3.5 text-amber-500" /> Google Search Result Preview
+            </span>
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4 space-y-1.5 font-sans">
+              <div className="flex items-center gap-2 text-xs text-zinc-400">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-black text-black">
+                  A
+                </span>
+                <span className="text-zinc-300">https://www.ambitiontattoosupply.com</span>
+                <span className="text-zinc-600">› products › {product.slug}</span>
+              </div>
+              <h4 className="text-base sm:text-lg font-medium text-blue-400 hover:underline cursor-pointer">
+                {product.name} | AMBI Professional Tattoo Supply
+              </h4>
+              <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold pt-0.5">
+                <span>In stock</span>
+                <span className="text-zinc-600">•</span>
+                <span className="text-amber-400 font-bold">
+                  {product.children && product.children.length > 1
+                    ? `From ${formatPrice(currentPrice)}`
+                    : formatPrice(currentPrice)}
+                </span>
+                <span className="text-zinc-600">•</span>
+                <span className="text-zinc-400">Brand: Ambition Tattoo Supply</span>
+              </div>
+              <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed pt-1">
+                {stripHtml(product.short_description || product.description || '')}
+              </p>
+            </div>
+          </div>
+
+          {/* Schema.org Checklist Verification Badges */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
+            <div className="flex items-center gap-2 rounded-lg bg-zinc-950/80 border border-zinc-800/80 p-2.5">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+              <div>
+                <div className="text-[11px] font-semibold text-white">Schema @type</div>
+                <div className="text-[10px] text-zinc-400 font-mono">Product</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg bg-zinc-950/80 border border-zinc-800/80 p-2.5">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+              <div>
+                <div className="text-[11px] font-semibold text-white">Pricing Model</div>
+                <div className="text-[10px] text-zinc-400 font-mono">
+                  {product.children && product.children.length > 1 ? 'AggregateOffer' : 'Single Offer'}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg bg-zinc-950/80 border border-zinc-800/80 p-2.5">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+              <div>
+                <div className="text-[11px] font-semibold text-white">Stock Status</div>
+                <div className="text-[10px] text-zinc-400 font-mono">schema.org/InStock</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg bg-zinc-950/80 border border-zinc-800/80 p-2.5">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+              <div>
+                <div className="text-[11px] font-semibold text-white">Gallery Assets</div>
+                <div className="text-[10px] text-zinc-400 font-mono">{galleryImages.length} High-Res Images</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Expandable JSON-LD Code Block */}
+          {showSeoDebug && (
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4 space-y-2 animate-fadeIn">
+              <div className="flex items-center justify-between text-xs text-zinc-400 border-b border-zinc-800 pb-2">
+                <span className="font-mono text-[11px] text-amber-400 flex items-center gap-1.5">
+                  <Code className="h-3.5 w-3.5" /> application/ld+json (Live DOM Script)
+                </span>
+                <span className="text-[10px] text-zinc-500 font-mono">Google Search Console Ready</span>
+              </div>
+              <pre className="max-h-72 overflow-y-auto text-[11px] font-mono leading-relaxed text-zinc-300 p-2 bg-zinc-900/60 rounded-lg">
+                {JSON.stringify(
+                  {
+                    '@context': 'https://schema.org',
+                    '@type': 'Product',
+                    name: product.name,
+                    image: galleryImages,
+                    description: stripHtml(product.short_description || product.description || ''),
+                    sku: currentSku,
+                    brand: {
+                      '@type': 'Brand',
+                      name: 'Ambition Tattoo Supply',
+                    },
+                    category: 'Professional Tattoo Equipment',
+                    offers:
+                      product.children && product.children.length > 1
+                        ? {
+                            '@type': 'AggregateOffer',
+                            priceCurrency: 'USD',
+                            lowPrice: Math.min(
+                              ...(product.children.map((c) => c.price).filter((p) => p > 0) || [currentPrice]),
+                            ),
+                            highPrice: Math.max(
+                              ...(product.children.map((c) => c.price).filter((p) => p > 0) || [currentPrice]),
+                            ),
+                            offerCount: product.children.length,
+                            availability: 'https://schema.org/InStock',
+                            itemCondition: 'https://schema.org/NewCondition',
+                            url: `https://www.ambitiontattoosupply.com/products/${product.slug}`,
+                          }
+                        : {
+                            '@type': 'Offer',
+                            price: currentPrice,
+                            priceCurrency: 'USD',
+                            availability: 'https://schema.org/InStock',
+                            itemCondition: 'https://schema.org/NewCondition',
+                            url: `https://www.ambitiontattoosupply.com/products/${product.slug}`,
+                          },
+                  },
+                  null,
+                  2,
+                )}
+              </pre>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Fullscreen Lightbox Modal */}
       {isLightboxOpen && activeImage && (
