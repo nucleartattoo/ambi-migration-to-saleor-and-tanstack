@@ -17,6 +17,7 @@ import {
   type ShopInfo,
   completeSaleorCheckout,
   createSaleorCheckout,
+  createSaleorPayment,
   createSaleorTransaction,
   fetchSaleorProducts,
   fetchSaleorShopInfo,
@@ -29,6 +30,18 @@ import type { Product } from '~/lib/saleor/types'
 import { formatPrice } from '~/lib/utils'
 
 export const Route = createFileRoute('/saleor')({
+  head: () => ({
+    meta: [
+      { title: 'Saleor GraphQL Status & API Health | Ambition Tattoo Supply' },
+      {
+        name: 'description',
+        content:
+          'Live connectivity health monitor, GraphQL schema introspection, and 5-step E2E mutation test workbench for Ambition Tattoo Supply Saleor 3.23 engine.',
+      },
+      { name: 'robots', content: 'noindex, nofollow, noarchive' },
+    ],
+    links: [{ rel: 'canonical', href: 'https://www.ambitiontattoosupply.com/saleor' }],
+  }),
   component: SaleorIntegrationPage,
 })
 
@@ -211,8 +224,8 @@ function SaleorIntegrationPage() {
         return
       }
 
-      // 4. Select Delivery Method
-      setCheckoutStep('4/5 Binding shipping method & charging transaction...')
+      // 4. Select Delivery Method & Create Payment
+      setCheckoutStep('4/5 Binding shipping method & authorizing Stripe payment...')
       const deliveryMethod = shipRes.availableShippingMethods?.[0]
       let grandTotal = createRes.checkout.totalPrice?.gross.amount || 20.0
       const currency = createRes.checkout.totalPrice?.gross.currency || 'USD'
@@ -224,20 +237,20 @@ function SaleorIntegrationPage() {
         }
       }
 
-      // Record transaction
-      const txRes = await createSaleorTransaction(checkoutId, {
+      // Create Payment via public storefront Stripe gateway
+      const payRes = await createSaleorPayment(checkoutId, {
         amount: grandTotal,
-        currency,
-        name: 'Storefront Credit Card',
+        gateway: 'saleor.payments.stripe',
+        token: 'tok_visa',
       })
 
-      if (!txRes.success) {
+      if (!payRes.success) {
         setCheckoutTesting(false)
         setCheckoutResult({
           productName: targetProduct.name,
           variantId: targetVariant.id,
-          step: 'transactionCreate',
-          error: txRes.errors?.[0]?.message || 'Failed to authorize payment transaction',
+          step: 'checkoutPaymentCreate',
+          error: payRes.errors?.[0]?.message || 'Failed to authorize payment gateway',
         })
         return
       }
