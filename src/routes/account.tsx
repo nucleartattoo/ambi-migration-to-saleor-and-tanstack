@@ -181,12 +181,14 @@ function AccountPage() {
       {/* Account Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zinc-800 pb-6">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
-              <ShieldCheck className="h-4 w-4" /> Verified Studio Pro Account
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
+            <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
+              <ShieldCheck className="h-4 w-4 shrink-0" /> Verified Studio Pro Account
             </span>
-            <span className="text-zinc-600">•</span>
-            <span className="text-[11px] font-mono text-zinc-400">ID: SLR-CUST-8839120</span>
+            <span className="hidden sm:inline text-zinc-600">•</span>
+            <span className="whitespace-nowrap text-[11px] font-mono text-zinc-400">
+              ID: SLR-CUST-8839120
+            </span>
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
             Customer Account & Studio Portal

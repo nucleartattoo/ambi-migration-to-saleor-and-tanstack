@@ -127,7 +127,7 @@ export function Header() {
                 <span className="font-display text-base font-bold tracking-wider leading-none text-white">
                   AMBITION
                 </span>
-                <span className="font-mono text-[9px] tracking-[0.2em] text-zinc-500 uppercase mt-0.5">
+                <span className="mt-0.5 whitespace-nowrap font-mono text-[9px] tracking-[0.12em] text-zinc-500 uppercase sm:tracking-[0.2em]">
                   STUDIO HARDWARE
                 </span>
               </div>

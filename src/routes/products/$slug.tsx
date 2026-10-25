@@ -390,7 +390,7 @@ function ProductDetailPage() {
       {toastItem && (
         <aside
           aria-label="Added to cart notification"
-          className="fixed bottom-6 right-6 z-50 flex max-w-md items-center gap-4 rounded-md border border-amber-400/50 bg-zinc-950/95 p-4 shadow-2xl backdrop-blur-md"
+          className="fixed inset-x-4 bottom-4 sm:inset-x-auto sm:bottom-6 sm:right-6 z-50 flex max-w-md items-center gap-4 rounded-md border border-amber-400/50 bg-zinc-950/95 p-4 shadow-2xl backdrop-blur-md"
         >
           <StudioProductImage
             src={toastItem.image}
@@ -558,15 +558,15 @@ function ProductDetailPage() {
             )}
           </div>
 
-          {/* Thumbnails */}
+          {/* Thumbnails (Horizontal filmstrip on mobile, 6-col grid on sm+) */}
           {galleryImages.length > 1 && (
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5">
+            <div className="flex overflow-x-auto pb-1.5 sm:pb-0 sm:grid sm:grid-cols-6 gap-2.5">
               {galleryImages.map((imgUrl, idx) => (
                 <button
                   type="button"
                   key={imgUrl}
                   onClick={() => setActiveImage(imgUrl)}
-                  className={`studio-pedestal btn-tactile relative aspect-square overflow-hidden rounded-sm border p-1.5 ${
+                  className={`studio-pedestal btn-tactile relative aspect-square w-16 shrink-0 sm:w-auto overflow-hidden rounded-sm border p-1.5 ${
                     activeImage === imgUrl
                       ? 'border-amber-400 ring-2 ring-amber-400/50'
                       : 'border-zinc-800 opacity-75 hover:opacity-100'
@@ -605,7 +605,7 @@ function ProductDetailPage() {
             </h1>
 
             {product.short_description && (
-              <p className="mt-2 text-sm text-zinc-400 leading-relaxed">
+              <p className="mt-2 line-clamp-3 sm:line-clamp-4 text-sm text-zinc-400 leading-relaxed">
                 {stripHtml(product.short_description)}
               </p>
             )}

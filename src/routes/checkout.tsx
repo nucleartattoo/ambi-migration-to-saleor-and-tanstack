@@ -567,7 +567,7 @@ function CheckoutPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       {/* Checkout Header */}
-      <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-800 pb-4">
         <div>
           <nav
             aria-label="Breadcrumb"
@@ -581,8 +581,8 @@ function CheckoutPage() {
           </nav>
           <h1 className="text-2xl font-bold text-white">Express Studio Checkout</h1>
         </div>
-        <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400 border border-emerald-500/20">
-          <Lock className="h-3.5 w-3.5" />
+        <div className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400 border border-emerald-500/20">
+          <Lock className="h-3.5 w-3.5 shrink-0" />
           <span>Saleor 256-bit Encrypted</span>
         </div>
       </div>
