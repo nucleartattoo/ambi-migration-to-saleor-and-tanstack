@@ -16,6 +16,7 @@ import {
   Truck,
 } from 'lucide-react'
 import { useState } from 'react'
+import { StudioProductImage } from '~/components/StudioProductImage'
 import { useCart } from '~/lib/cart'
 import {
   completeSaleorCheckout,
@@ -483,17 +484,13 @@ function CheckoutPage() {
             <div className="divide-y divide-zinc-800/80 max-h-64 overflow-y-auto pr-1">
               {confirmedOrder.items.map((item) => (
                 <div key={item.id} className="py-3 flex items-center gap-3">
-                  <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-zinc-900 border border-zinc-800 p-1 flex items-center justify-center">
-                    {item.image ? (
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="h-full w-full object-contain"
-                      />
-                    ) : (
-                      <Package className="h-5 w-5 text-zinc-600" />
-                    )}
-                  </div>
+                  <StudioProductImage
+                    src={item.image}
+                    alt={item.name}
+                    productName={item.name}
+                    size="sm"
+                    className="h-12 w-12 shrink-0 rounded-sm"
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-white truncate">{item.name}</p>
                     <p className="text-[10px] text-zinc-400">
@@ -1045,17 +1042,15 @@ function CheckoutPage() {
             <div className="space-y-3 max-h-56 overflow-y-auto pr-1 border-b border-zinc-800 pb-4">
               {items.map((item) => (
                 <div key={item.id} className="flex items-center gap-3">
-                  <div className="relative h-12 w-12 flex-shrink-0 rounded-lg bg-zinc-950 border border-zinc-800 p-1 flex items-center justify-center">
-                    {item.image ? (
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="h-full w-full object-contain"
-                      />
-                    ) : (
-                      <Package className="h-4 w-4 text-zinc-600" />
-                    )}
-                    <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-amber-500 text-[9px] font-bold text-black flex items-center justify-center">
+                  <div className="relative h-12 w-12 flex-shrink-0">
+                    <StudioProductImage
+                      src={item.image}
+                      alt={item.name}
+                      productName={item.name}
+                      size="sm"
+                      className="h-full w-full rounded-sm"
+                    />
+                    <span className="absolute -top-1.5 -right-1.5 z-10 h-4 w-4 rounded-full bg-amber-400 font-mono text-[9px] font-bold text-black flex items-center justify-center">
                       {item.quantity}
                     </span>
                   </div>

@@ -23,6 +23,7 @@ import {
   ZoomOut,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { StudioProductImage } from '~/components/StudioProductImage'
 import { useCart } from '~/lib/cart'
 import {
   type CatalogProduct,
@@ -389,43 +390,43 @@ function ProductDetailPage() {
       {toastItem && (
         <aside
           aria-label="Added to cart notification"
-          className="fixed bottom-6 right-6 z-50 flex max-w-md items-center gap-4 rounded-2xl border border-amber-500/40 bg-zinc-900/95 p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom-5 duration-300"
+          className="fixed bottom-6 right-6 z-50 flex max-w-md items-center gap-4 rounded-md border border-amber-400/50 bg-zinc-950/95 p-4 shadow-2xl backdrop-blur-md"
         >
-          <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 p-1 flex items-center justify-center">
-            {toastItem.image ? (
-              <img
-                src={toastItem.image}
-                alt={toastItem.name}
-                className="h-full w-full object-contain"
-              />
-            ) : (
-              <Package className="h-6 w-6 text-zinc-600" />
-            )}
-          </div>
+          <StudioProductImage
+            src={toastItem.image}
+            alt={toastItem.name}
+            productName={toastItem.name}
+            size="sm"
+            className="h-14 w-14 shrink-0 rounded-sm"
+          />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
-              <Check className="h-3.5 w-3.5" /> Added to your Cart
+            <div className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-emerald-400 uppercase">
+              <Check className="h-3.5 w-3.5" /> Added to Cart
             </div>
-            <p className="text-xs font-bold text-white truncate mt-0.5">{toastItem.name}</p>
+            <p className="font-display text-xs font-bold text-white truncate mt-0.5">
+              {toastItem.name}
+            </p>
             {toastItem.variantLabel && (
-              <p className="text-[11px] text-zinc-400 truncate">{toastItem.variantLabel}</p>
+              <p className="font-mono text-[11px] text-zinc-400 truncate">
+                {toastItem.variantLabel}
+              </p>
             )}
-            <div className="mt-1 flex items-center gap-3">
-              <span className="text-xs font-bold text-amber-400">
+            <div className="mt-1.5 flex items-center gap-3">
+              <span className="font-mono text-xs font-bold text-amber-400">
                 {toastItem.quantity} × {formatPrice(toastItem.price)}
               </span>
               <Link
                 to="/cart"
-                className="inline-flex items-center gap-1 text-xs font-bold text-white hover:text-amber-400 underline decoration-amber-500/50 underline-offset-2 transition"
+                className="inline-flex items-center gap-1 font-mono text-xs font-bold text-white hover:text-amber-400 underline decoration-amber-400/50 underline-offset-2"
               >
-                View Cart <ArrowRight className="h-3 w-3" />
+                Open Cart <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
           </div>
           <button
             type="button"
             onClick={() => setToastItem(null)}
-            className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+            className="rounded-sm p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white"
             aria-label="Close notification"
           >
             <X className="h-4 w-4" />
@@ -468,7 +469,7 @@ function ProductDetailPage() {
                 setIsLightboxOpen(true)
               }
             }}
-            className="group relative aspect-square overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 p-6 flex items-center justify-center cursor-zoom-in select-none shadow-xl shadow-black/40"
+            className="studio-pedestal group relative aspect-square overflow-hidden rounded-md border border-zinc-800 p-6 flex items-center justify-center cursor-zoom-in select-none shadow-xl"
           >
             {activeImage ? (
               <img
@@ -478,23 +479,27 @@ function ProductDetailPage() {
                   isHoverZoom
                     ? {
                         transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
-                        transform: 'scale(2)',
+                        transform: 'scale(1.85)',
                       }
                     : { transform: 'scale(1)' }
                 }
                 className="max-h-full max-w-full object-contain transition-transform duration-150 ease-out"
               />
             ) : (
-              <div className="flex flex-col items-center justify-center text-zinc-600 gap-2">
-                <Package className="h-16 w-16 text-zinc-700" />
-                <span className="text-xs text-zinc-500">AMBI Professional Equipment</span>
-              </div>
+              <StudioProductImage
+                src={null}
+                alt={product.name}
+                productName={product.name}
+                sku={currentSku}
+                size="lg"
+                className="h-full w-full"
+              />
             )}
 
             {/* Badge */}
             {product.type === 'configurable' && (
-              <span className="absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 rounded-full bg-zinc-900/90 px-3 py-1 text-[11px] font-semibold text-amber-400 border border-amber-500/20 backdrop-blur-md">
-                <Sparkles className="h-3.5 w-3.5" /> Configurable Multi-Variant
+              <span className="absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 rounded-sm bg-zinc-950/90 px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-400 border border-zinc-800 backdrop-blur-sm">
+                <Sparkles className="h-3 w-3" /> Multi-Spec Hardware
               </span>
             )}
 
@@ -505,7 +510,7 @@ function ProductDetailPage() {
                 e.stopPropagation()
                 setIsLightboxOpen(true)
               }}
-              className="absolute top-4 right-4 z-10 flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900/80 border border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800 transition backdrop-blur-sm"
+              className="btn-tactile absolute top-4 right-4 z-10 flex h-8 w-8 items-center justify-center rounded-sm bg-zinc-950/85 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-900"
               title="Click to zoom & fullscreen"
               aria-label="Enlarge image"
             >
@@ -521,10 +526,10 @@ function ProductDetailPage() {
                     e.stopPropagation()
                     handlePrevImage()
                   }}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900/80 border border-zinc-700/80 text-zinc-300 hover:text-white hover:bg-zinc-800 hover:scale-105 active:scale-95 transition backdrop-blur-sm opacity-80 sm:opacity-0 group-hover:opacity-100"
+                  className="btn-tactile absolute left-3 top-1/2 -translate-y-1/2 z-10 flex h-9 w-9 items-center justify-center rounded-sm bg-zinc-950/85 border border-zinc-800 text-zinc-200 hover:text-white hover:bg-zinc-900 opacity-85 sm:opacity-0 group-hover:opacity-100"
                   aria-label="Previous image"
                 >
-                  <ChevronLeft className="h-5 w-5" />
+                  <ChevronLeft className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
@@ -532,22 +537,22 @@ function ProductDetailPage() {
                     e.stopPropagation()
                     handleNextImage()
                   }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900/80 border border-zinc-700/80 text-zinc-300 hover:text-white hover:bg-zinc-800 hover:scale-105 active:scale-95 transition backdrop-blur-sm opacity-80 sm:opacity-0 group-hover:opacity-100"
+                  className="btn-tactile absolute right-3 top-1/2 -translate-y-1/2 z-10 flex h-9 w-9 items-center justify-center rounded-sm bg-zinc-950/85 border border-zinc-800 text-zinc-200 hover:text-white hover:bg-zinc-900 opacity-85 sm:opacity-0 group-hover:opacity-100"
                   aria-label="Next image"
                 >
-                  <ChevronRight className="h-5 w-5" />
+                  <ChevronRight className="h-4 w-4" />
                 </button>
               </>
             )}
 
             {/* Image Counter & Hover hint */}
             {galleryImages.length > 0 && (
-              <div className="absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
-                <span className="rounded-md bg-zinc-900/80 border border-zinc-800 px-2.5 py-1 text-[11px] font-mono text-zinc-300 backdrop-blur-sm">
-                  {activeImageIndex + 1} / {galleryImages.length}
+              <div className="absolute bottom-3.5 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
+                <span className="rounded-sm bg-zinc-950/85 border border-zinc-800 px-2.5 py-1 font-mono text-[10px] text-zinc-200">
+                  VIEW {activeImageIndex + 1} / {galleryImages.length}
                 </span>
-                <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-zinc-400 bg-zinc-900/80 border border-zinc-800 px-2 py-0.5 rounded backdrop-blur-sm">
-                  <ZoomIn className="h-3 w-3 text-amber-500" /> Hover to zoom • Click for fullscreen
+                <span className="hidden sm:inline-flex items-center gap-1.5 font-mono text-[10px] text-zinc-300 bg-zinc-950/85 border border-zinc-800 px-2.5 py-1 rounded-sm">
+                  <ZoomIn className="h-3 w-3 text-amber-400" /> HOVER TO INSPECT
                 </span>
               </div>
             )}
@@ -555,16 +560,16 @@ function ProductDetailPage() {
 
           {/* Thumbnails */}
           {galleryImages.length > 1 && (
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5">
               {galleryImages.map((imgUrl, idx) => (
                 <button
                   type="button"
                   key={imgUrl}
                   onClick={() => setActiveImage(imgUrl)}
-                  className={`relative aspect-square overflow-hidden rounded-xl border p-1 bg-zinc-950 transition ${
+                  className={`studio-pedestal btn-tactile relative aspect-square overflow-hidden rounded-sm border p-1.5 ${
                     activeImage === imgUrl
-                      ? 'border-amber-500 ring-2 ring-amber-500/50'
-                      : 'border-zinc-800 hover:border-zinc-700 opacity-70 hover:opacity-100'
+                      ? 'border-amber-400 ring-2 ring-amber-400/50'
+                      : 'border-zinc-800 opacity-75 hover:opacity-100'
                   }`}
                   aria-label={`View slide ${idx + 1}`}
                 >
@@ -573,9 +578,6 @@ function ProductDetailPage() {
                     alt={`${product.name} view ${idx + 1}`}
                     className="h-full w-full object-contain"
                   />
-                  {activeImage === imgUrl && (
-                    <span className="absolute bottom-1 right-1 h-1.5 w-1.5 rounded-full bg-amber-500" />
-                  )}
                 </button>
               ))}
             </div>
@@ -739,35 +741,30 @@ function ProductDetailPage() {
         </div>
       )}
 
-      {/* SEO & Schema.org Rich Snippet Transparency Box */}
+      {/* Discreet Collapsible SEO & Schema.org Rich Snippet Telemetry Bar */}
       <div className="border-t border-zinc-800/80 pt-8">
-        <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-5 sm:p-6 space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-zinc-800/80 pb-4">
+        <div className="rounded-md border border-zinc-800/80 bg-zinc-950 p-4 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2 text-amber-400">
-                <Globe className="h-4 w-4" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <span>Google Rich Snippets & Schema.org Structured Data</span>
-                  <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
-                    100% Validated
-                  </span>
-                </h3>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  Saleor headless catalog metadata formatted for Google Merchant & Schema.org
-                  Product Rich Results.
-                </p>
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="font-mono font-semibold text-zinc-300">
+                  PRODUCT SCHEMA.ORG TELEMETRY
+                </span>
+                <span className="font-mono text-[10px] text-zinc-500">
+                  ({product.children && product.children.length > 1 ? 'AggregateOffer' : 'Offer'} +{' '}
+                  {galleryImages.length} Gallery Assets)
+                </span>
               </div>
             </div>
 
             <button
               type="button"
               onClick={() => setShowSeoDebug((prev) => !prev)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/90 px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 hover:text-white transition"
+              className="btn-tactile inline-flex items-center gap-1.5 self-start sm:self-auto rounded-sm border border-zinc-800 bg-zinc-900 px-3 py-1.5 font-mono text-[11px] font-medium text-zinc-300 hover:border-zinc-700 hover:text-white"
             >
               <Code className="h-3.5 w-3.5 text-amber-400" />
-              <span>{showSeoDebug ? 'Hide JSON-LD' : 'Inspect JSON-LD'}</span>
+              <span>{showSeoDebug ? 'Hide Schema Inspector' : 'Inspect JSON-LD'}</span>
               {showSeoDebug ? (
                 <ChevronUp className="h-3.5 w-3.5" />
               ) : (
@@ -776,135 +773,100 @@ function ProductDetailPage() {
             </button>
           </div>
 
-          {/* Google Search Result Mockup Card */}
-          <div className="space-y-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-              <Search className="h-3.5 w-3.5 text-amber-500" /> Google Search Result Preview
-            </span>
-            <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4 space-y-1.5 font-sans">
-              <div className="flex items-center gap-2 text-xs text-zinc-400">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-black text-black">
-                  A
-                </span>
-                <span className="text-zinc-300">https://www.ambitiontattoosupply.com</span>
-                <span className="text-zinc-600">› products › {product.slug}</span>
-              </div>
-              <h4 className="text-base sm:text-lg font-medium text-blue-400 hover:underline cursor-pointer">
-                {product.name} | AMBI Professional Tattoo Supply
-              </h4>
-              <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold pt-0.5">
-                <span>In stock</span>
-                <span className="text-zinc-600">•</span>
-                <span className="text-amber-400 font-bold">
-                  {product.children && product.children.length > 1
-                    ? `From ${formatPrice(currentPrice)}`
-                    : formatPrice(currentPrice)}
-                </span>
-                <span className="text-zinc-600">•</span>
-                <span className="text-zinc-400">Brand: Ambition Tattoo Supply</span>
-              </div>
-              <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed pt-1">
-                {stripHtml(product.short_description || product.description || '')}
-              </p>
-            </div>
-          </div>
-
-          {/* Schema.org Checklist Verification Badges */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
-            <div className="flex items-center gap-2 rounded-lg bg-zinc-950/80 border border-zinc-800/80 p-2.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-              <div>
-                <div className="text-[11px] font-semibold text-white">Schema @type</div>
-                <div className="text-[10px] text-zinc-400 font-mono">Product</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 rounded-lg bg-zinc-950/80 border border-zinc-800/80 p-2.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-              <div>
-                <div className="text-[11px] font-semibold text-white">Pricing Model</div>
-                <div className="text-[10px] text-zinc-400 font-mono">
-                  {product.children && product.children.length > 1
-                    ? 'AggregateOffer'
-                    : 'Single Offer'}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 rounded-lg bg-zinc-950/80 border border-zinc-800/80 p-2.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-              <div>
-                <div className="text-[11px] font-semibold text-white">Stock Status</div>
-                <div className="text-[10px] text-zinc-400 font-mono">schema.org/InStock</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 rounded-lg bg-zinc-950/80 border border-zinc-800/80 p-2.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-              <div>
-                <div className="text-[11px] font-semibold text-white">Gallery Assets</div>
-                <div className="text-[10px] text-zinc-400 font-mono">
-                  {galleryImages.length} High-Res Images
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Expandable JSON-LD Code Block */}
           {showSeoDebug && (
-            <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4 space-y-2 animate-fadeIn">
-              <div className="flex items-center justify-between text-xs text-zinc-400 border-b border-zinc-800 pb-2">
-                <span className="font-mono text-[11px] text-amber-400 flex items-center gap-1.5">
-                  <Code className="h-3.5 w-3.5" /> application/ld+json (Live DOM Script)
+            <div className="space-y-4 border-t border-zinc-800 pt-4">
+              {/* Google Search Result Mockup Card */}
+              <div className="space-y-2">
+                <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                  <Search className="h-3.5 w-3.5 text-amber-400" /> Google Search Result Preview
                 </span>
-                <span className="text-[10px] text-zinc-500 font-mono">
-                  Google Search Console Ready
-                </span>
+                <div className="rounded-sm border border-zinc-800 bg-zinc-900/50 p-4 space-y-1.5 font-sans">
+                  <div className="flex items-center gap-2 text-xs text-zinc-400">
+                    <span className="flex h-4 w-4 items-center justify-center rounded-sm bg-amber-400 text-[9px] font-black text-black">
+                      A
+                    </span>
+                    <span className="text-zinc-300">https://www.ambitiontattoosupply.com</span>
+                    <span className="text-zinc-600">› products › {product.slug}</span>
+                  </div>
+                  <h4 className="text-base sm:text-lg font-medium text-blue-400">
+                    {product.name} | AMBI Professional Tattoo Supply
+                  </h4>
+                  <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold pt-0.5">
+                    <span>In stock</span>
+                    <span className="text-zinc-600">•</span>
+                    <span className="text-amber-400 font-bold">
+                      {product.children && product.children.length > 1
+                        ? `From ${formatPrice(currentPrice)}`
+                        : formatPrice(currentPrice)}
+                    </span>
+                    <span className="text-zinc-600">•</span>
+                    <span className="text-zinc-400">Brand: Ambition Tattoo Supply</span>
+                  </div>
+                  <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed pt-1">
+                    {stripHtml(product.short_description || product.description || '')}
+                  </p>
+                </div>
               </div>
-              <pre className="max-h-72 overflow-y-auto text-[11px] font-mono leading-relaxed text-zinc-300 p-2 bg-zinc-900/60 rounded-lg">
-                {JSON.stringify(
-                  {
-                    '@context': 'https://schema.org',
-                    '@type': 'Product',
-                    name: product.name,
-                    image: galleryImages,
-                    description: stripHtml(product.short_description || product.description || ''),
-                    sku: currentSku,
-                    brand: {
-                      '@type': 'Brand',
-                      name: 'Ambition Tattoo Supply',
+
+              <div className="rounded-sm border border-zinc-800 bg-zinc-900/60 p-4 space-y-2">
+                <div className="flex items-center justify-between text-xs text-zinc-400 border-b border-zinc-800 pb-2">
+                  <span className="font-mono text-[11px] text-amber-400 flex items-center gap-1.5">
+                    <Code className="h-3.5 w-3.5" /> application/ld+json (Live DOM Script)
+                  </span>
+                  <span className="text-[10px] text-zinc-500 font-mono">
+                    Google Search Console Ready
+                  </span>
+                </div>
+                <pre className="max-h-72 overflow-y-auto text-[11px] font-mono leading-relaxed text-zinc-300 p-2">
+                  {JSON.stringify(
+                    {
+                      '@context': 'https://schema.org',
+                      '@type': 'Product',
+                      name: product.name,
+                      image: galleryImages,
+                      description: stripHtml(
+                        product.short_description || product.description || '',
+                      ),
+                      sku: currentSku,
+                      brand: {
+                        '@type': 'Brand',
+                        name: 'Ambition Tattoo Supply',
+                      },
+                      category: 'Professional Tattoo Equipment',
+                      offers:
+                        product.children && product.children.length > 1
+                          ? {
+                              '@type': 'AggregateOffer',
+                              priceCurrency: 'USD',
+                              lowPrice: Math.min(
+                                ...(product.children.map((c) => c.price).filter((p) => p > 0) || [
+                                  currentPrice,
+                                ]),
+                              ),
+                              highPrice: Math.max(
+                                ...(product.children.map((c) => c.price).filter((p) => p > 0) || [
+                                  currentPrice,
+                                ]),
+                              ),
+                              offerCount: product.children.length,
+                              availability: 'https://schema.org/InStock',
+                              itemCondition: 'https://schema.org/NewCondition',
+                              url: `https://www.ambitiontattoosupply.com/products/${product.slug}`,
+                            }
+                          : {
+                              '@type': 'Offer',
+                              price: currentPrice,
+                              priceCurrency: 'USD',
+                              availability: 'https://schema.org/InStock',
+                              itemCondition: 'https://schema.org/NewCondition',
+                              url: `https://www.ambitiontattoosupply.com/products/${product.slug}`,
+                            },
                     },
-                    category: 'Professional Tattoo Equipment',
-                    offers:
-                      product.children && product.children.length > 1
-                        ? {
-                            '@type': 'AggregateOffer',
-                            priceCurrency: 'USD',
-                            lowPrice: Math.min(
-                              ...(product.children.map((c) => c.price).filter((p) => p > 0) || [
-                                currentPrice,
-                              ]),
-                            ),
-                            highPrice: Math.max(
-                              ...(product.children.map((c) => c.price).filter((p) => p > 0) || [
-                                currentPrice,
-                              ]),
-                            ),
-                            offerCount: product.children.length,
-                            availability: 'https://schema.org/InStock',
-                            itemCondition: 'https://schema.org/NewCondition',
-                            url: `https://www.ambitiontattoosupply.com/products/${product.slug}`,
-                          }
-                        : {
-                            '@type': 'Offer',
-                            price: currentPrice,
-                            priceCurrency: 'USD',
-                            availability: 'https://schema.org/InStock',
-                            itemCondition: 'https://schema.org/NewCondition',
-                            url: `https://www.ambitiontattoosupply.com/products/${product.slug}`,
-                          },
-                  },
-                  null,
-                  2,
-                )}
-              </pre>
+                    null,
+                    2,
+                  )}
+                </pre>
+              </div>
             </div>
           )}
         </div>

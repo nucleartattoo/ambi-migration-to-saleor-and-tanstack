@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
-import { Package } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowUpRight } from 'lucide-react'
+import { StudioProductImage } from '~/components/StudioProductImage'
 import { type CatalogProduct, getProductEffectivePrice } from '~/lib/catalog'
 import type { Product } from '~/lib/saleor/types'
 import { formatPrice } from '~/lib/utils'
@@ -10,69 +10,66 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  // Extract fields whether CatalogProduct or Saleor Product
   const isCatalogProduct = 'gallery' in product
 
   const name = product.name
   const slug = product.slug
+  const sku = isCatalogProduct ? product.sku : product.id.slice(0, 6)
   const rawImage = isCatalogProduct ? product.image : product.thumbnail?.url
   const categoryName = isCatalogProduct ? undefined : product.category?.name
   const effectivePrice = isCatalogProduct
     ? getProductEffectivePrice(product)
     : product.pricing?.priceRange?.start?.gross?.amount || 0
-  const hasRange =
-    isCatalogProduct &&
-    (!product.price || product.price === 0) &&
-    (product.variants?.length || 0) > 0
-
-  const [imgSrc, setImgSrc] = useState<string | null>(rawImage || null)
-
-  const formattedPrice =
-    effectivePrice > 0
-      ? `${hasRange ? 'From ' : ''}${formatPrice(effectivePrice)}`
-      : 'Studio Inquire'
+  const variantCount = isCatalogProduct ? product.variants?.length || 0 : 0
+  const hasRange = isCatalogProduct && (!product.price || product.price === 0) && variantCount > 0
 
   return (
     <Link
       to="/products/$slug"
       params={{ slug }}
-      className="group flex flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 transition duration-200 hover:border-zinc-700 hover:bg-zinc-800/50"
+      className="group btn-tactile relative flex flex-col overflow-hidden rounded-md border border-zinc-800/90 bg-zinc-900/50 transition-colors hover:border-amber-500/50 hover:bg-zinc-900"
     >
-      {/* Product Image */}
-      <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-zinc-950 flex items-center justify-center">
-        {imgSrc ? (
-          <img
-            src={imgSrc}
-            alt={name}
-            onError={() => setImgSrc(null)}
-            className="h-full w-full object-contain p-2 transition duration-300 group-hover:scale-105"
-            loading="lazy"
-          />
-        ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center text-zinc-600 gap-1">
-            <Package className="h-8 w-8 text-zinc-700" />
-            <span className="text-[10px] text-zinc-500 font-medium">Studio Equipment</span>
-          </div>
-        )}
+      {/* Top Studio Pedestal Image Well (Zero overlaid pills per design guidelines) */}
+      <div className="relative aspect-square w-full overflow-hidden border-b border-zinc-800/80">
+        <StudioProductImage
+          src={rawImage}
+          alt={name}
+          productName={name}
+          sku={sku}
+          priority
+          className="h-full w-full"
+        />
       </div>
 
-      {/* Info */}
-      <div className="mt-4 flex flex-1 flex-col justify-between">
+      {/* Hardware Telemetry & Pricing */}
+      <div className="flex flex-1 flex-col justify-between p-4">
         <div>
-          {categoryName && (
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">
-              {categoryName}
+          <div className="flex items-center justify-between gap-2 font-mono text-[10px] tracking-wider text-zinc-500 uppercase">
+            <span className="truncate">{categoryName || `SKU // ${sku}`}</span>
+            <span className="shrink-0 text-amber-400">
+              {variantCount > 1 ? `${variantCount} SPECS` : 'IN STOCK'}
             </span>
-          )}
-          <h3 className="mt-1 line-clamp-2 text-sm font-medium text-zinc-100 group-hover:text-amber-400">
+          </div>
+
+          <h3 className="mt-1.5 line-clamp-2 font-display text-sm font-semibold leading-snug text-zinc-100 transition-colors group-hover:text-amber-400">
             {name}
           </h3>
         </div>
 
-        <div className="mt-3 flex items-center justify-between">
-          <span className="text-base font-bold text-white">{formattedPrice}</span>
-          <span className="rounded bg-zinc-800 px-2 py-1 text-[11px] font-medium text-zinc-300 group-hover:bg-amber-500 group-hover:text-black">
-            View
+        <div className="mt-4 flex items-center justify-between gap-2 border-t border-zinc-800/80 pt-3">
+          <div className="flex items-baseline gap-1.5 whitespace-nowrap">
+            {hasRange && effectivePrice > 0 && (
+              <span className="font-mono text-[10px] font-medium text-zinc-500 uppercase">
+                From
+              </span>
+            )}
+            <span className="font-mono text-sm font-bold tracking-tight text-white">
+              {effectivePrice > 0 ? formatPrice(effectivePrice) : 'Inquire'}
+            </span>
+          </div>
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-sm border border-zinc-700/80 bg-zinc-800/80 px-2 py-1 font-mono text-[10px] font-semibold text-zinc-200 transition-colors group-hover:border-amber-400 group-hover:bg-amber-400 group-hover:text-black">
+            <span>Inspect</span>
+            <ArrowUpRight className="h-3 w-3" strokeWidth={2} />
           </span>
         </div>
       </div>

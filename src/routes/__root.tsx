@@ -1,7 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
-import { CategoryNav } from '~/components/CategoryNav'
 import { ErrorBoundaryComponent } from '~/components/ErrorBoundary'
 import { Footer } from '~/components/Footer'
 import { Header } from '~/components/Header'
@@ -17,14 +16,22 @@ export const Route = createRootRouteWithContext<RootContext>()({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'Ambition Tattoo Supply | Professional Wireless Machines & Needles' },
+      { title: 'Ambition Tattoo Supply | Official Store - Wireless Machines & Cartridges' },
       {
         name: 'description',
         content:
-          'Ambition Tattoo Supply Official Store. Premium wireless tattoo machines, battery power supplies, cartridge needles, and professional studio equipment.',
+          'Ambition Tattoo Supply Official Store. Precision CNC wireless tattoo machines, battery power supplies, surgical cartridge needles, and professional studio equipment.',
       },
     ],
-    links: [{ rel: 'stylesheet', href: styles }],
+    links: [
+      { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+      { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: 'anonymous' },
+      {
+        rel: 'stylesheet',
+        href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap',
+      },
+      { rel: 'stylesheet', href: styles },
+    ],
   }),
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
@@ -34,9 +41,8 @@ export const Route = createRootRouteWithContext<RootContext>()({
 function RootComponent() {
   return (
     <RootDocument>
-      <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-100">
+      <div className="flex min-h-[100dvh] flex-col bg-zinc-950 text-zinc-100">
         <Header />
-        <CategoryNav />
         <main className="flex-1">
           <Outlet />
         </main>
@@ -52,7 +58,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
       <head>
         <HeadContent />
       </head>
-      <body className="bg-zinc-950 antialiased selection:bg-amber-500 selection:text-black">
+      <body className="bg-zinc-950 antialiased selection:bg-amber-400 selection:text-black">
         {children}
         <Scripts />
       </body>

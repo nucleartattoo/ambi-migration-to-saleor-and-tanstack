@@ -623,35 +623,29 @@ function CategoryPage() {
             </div>
           )}
 
-          {/* SEO & Schema.org Rich Snippet Transparency Box */}
+          {/* Discreet Collapsible Category SEO & Schema.org Telemetry Bar */}
           <div className="mt-14 border-t border-zinc-800/80 pt-8">
-            <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-5 sm:p-6 space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-zinc-800/80 pb-4">
+            <div className="rounded-md border border-zinc-800/80 bg-zinc-950 p-4 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2 text-amber-400">
-                    <Globe className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                      <span>Category SEO & Schema.org Structured Data</span>
-                      <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
-                        100% Validated
-                      </span>
-                    </h3>
-                    <p className="text-xs text-zinc-400 mt-0.5">
-                      Saleor collection metadata with Schema.org CollectionPage, ItemList, and
-                      BreadcrumbList for Google Rich Snippets.
-                    </p>
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="font-mono font-semibold text-zinc-300">
+                      COLLECTION SCHEMA.ORG TELEMETRY
+                    </span>
+                    <span className="font-mono text-[10px] text-zinc-500">
+                      (CollectionPage + ItemList [{baseData.total} SKUs] + BreadcrumbList)
+                    </span>
                   </div>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setShowSeoDebug((prev) => !prev)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/90 px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 hover:text-white transition"
+                  className="btn-tactile inline-flex items-center gap-1.5 self-start sm:self-auto rounded-sm border border-zinc-800 bg-zinc-900 px-3 py-1.5 font-mono text-[11px] font-medium text-zinc-300 hover:border-zinc-700 hover:text-white"
                 >
                   <Code className="h-3.5 w-3.5 text-amber-400" />
-                  <span>{showSeoDebug ? 'Hide JSON-LD' : 'Inspect JSON-LD'}</span>
+                  <span>{showSeoDebug ? 'Hide Schema Inspector' : 'Inspect JSON-LD'}</span>
                   {showSeoDebug ? (
                     <ChevronUp className="h-3.5 w-3.5" />
                   ) : (
@@ -660,156 +654,119 @@ function CategoryPage() {
                 </button>
               </div>
 
-              {/* Google Search Result Mockup Card */}
-              <div className="space-y-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                  <Search className="h-3.5 w-3.5 text-amber-500" /> Google Search Result Preview
-                </span>
-                <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4 space-y-1.5 font-sans">
-                  <div className="flex items-center gap-2 text-xs text-zinc-400">
-                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-black text-black">
-                      A
-                    </span>
-                    <span className="text-zinc-300">https://www.ambitiontattoosupply.com</span>
-                    <span className="text-zinc-600">› categories › {slug}</span>
-                  </div>
-                  <h4 className="text-base sm:text-lg font-medium text-blue-400 hover:underline cursor-pointer">
-                    {categoryName} | Ambition Tattoo Supply Official Store
-                  </h4>
-                  <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold pt-0.5">
-                    <span>{baseData.total} products available</span>
-                    <span className="text-zinc-600">•</span>
-                    <span className="text-amber-400">Official Ambi Catalog</span>
-                    <span className="text-zinc-600">•</span>
-                    <span className="text-zinc-400">Verified Studio Hardware</span>
-                  </div>
-                  <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed pt-1">
-                    Shop {baseData.total}+ professional {categoryName.toLowerCase()} at Ambition
-                    Tattoo Supply. Premium wireless machines, cartridges, and studio hardware with
-                    fast global dispatch.
-                  </p>
-                </div>
-              </div>
-
-              {/* Schema.org Checklist Verification Badges */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
-                <div className="flex items-center gap-2 rounded-lg bg-zinc-950/80 border border-zinc-800/80 p-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-                  <div>
-                    <div className="text-[11px] font-semibold text-white">CollectionPage</div>
-                    <div className="text-[10px] text-zinc-400">Root catalog schema</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 rounded-lg bg-zinc-950/80 border border-zinc-800/80 p-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-                  <div>
-                    <div className="text-[11px] font-semibold text-white">ItemList</div>
-                    <div className="text-[10px] text-zinc-400">{baseData.total} indexed items</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 rounded-lg bg-zinc-950/80 border border-zinc-800/80 p-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-                  <div>
-                    <div className="text-[11px] font-semibold text-white">BreadcrumbList</div>
-                    <div className="text-[10px] text-zinc-400">
-                      Home &gt; Cat &gt; {categoryName}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 rounded-lg bg-zinc-950/80 border border-zinc-800/80 p-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-                  <div>
-                    <div className="text-[11px] font-semibold text-white">Canonical Link</div>
-                    <div className="text-[10px] text-zinc-400">/categories/{slug}</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* JSON-LD Inspector Panel */}
               {showSeoDebug && (
-                <div className="space-y-3 pt-2">
-                  <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-                    <span className="text-xs font-semibold text-zinc-300">
-                      Live Rendered JSON-LD Scripts:
+                <div className="space-y-4 border-t border-zinc-800 pt-4">
+                  {/* Google Search Result Mockup Card */}
+                  <div className="space-y-2">
+                    <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                      <Search className="h-3.5 w-3.5 text-amber-400" /> Google Search Result Preview
                     </span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setSeoTab('collection')}
-                        className={`px-2.5 py-1 rounded text-xs font-medium transition ${
-                          seoTab === 'collection'
-                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                            : 'text-zinc-400 hover:text-white'
-                        }`}
-                      >
-                        CollectionPage & ItemList
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSeoTab('breadcrumb')}
-                        className={`px-2.5 py-1 rounded text-xs font-medium transition ${
-                          seoTab === 'breadcrumb'
-                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                            : 'text-zinc-400 hover:text-white'
-                        }`}
-                      >
-                        BreadcrumbList
-                      </button>
+                    <div className="rounded-sm border border-zinc-800 bg-zinc-900/50 p-4 space-y-1.5 font-sans">
+                      <div className="flex items-center gap-2 text-xs text-zinc-400">
+                        <span className="flex h-4 w-4 items-center justify-center rounded-sm bg-amber-400 text-[9px] font-black text-black">
+                          A
+                        </span>
+                        <span className="text-zinc-300">https://www.ambitiontattoosupply.com</span>
+                        <span className="text-zinc-600">› categories › {slug}</span>
+                      </div>
+                      <h4 className="text-base sm:text-lg font-medium text-blue-400">
+                        {categoryName} | Ambition Tattoo Supply Official Store
+                      </h4>
+                      <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold pt-0.5">
+                        <span>{baseData.total} products available</span>
+                        <span className="text-zinc-600">•</span>
+                        <span className="text-amber-400">Official Ambi Catalog</span>
+                      </div>
+                      <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed pt-1">
+                        Shop {baseData.total}+ professional {categoryName.toLowerCase()} at Ambition
+                        Tattoo Supply. Premium wireless machines, cartridges, and studio hardware
+                        with fast global dispatch.
+                      </p>
                     </div>
                   </div>
 
-                  <pre className="max-h-80 overflow-y-auto rounded-xl bg-zinc-950 p-3.5 text-[11px] font-mono text-amber-400/90 border border-zinc-800/80 leading-relaxed">
-                    {JSON.stringify(
-                      seoTab === 'collection'
-                        ? {
-                            '@context': 'https://schema.org',
-                            '@type': 'CollectionPage',
-                            name: `${categoryName} | Ambition Tattoo Supply Official Store`,
-                            description: `Shop ${baseData.total}+ professional ${categoryName.toLowerCase()} at Ambition Tattoo Supply. Premium wireless machines, cartridges, and studio hardware with fast global dispatch.`,
-                            url: `https://www.ambitiontattoosupply.com/categories/${slug}`,
-                            mainEntity: {
-                              '@type': 'ItemList',
-                              numberOfItems: baseData.total,
-                              itemListElement: baseData.products.slice(0, 5).map((p, i) => ({
-                                '@type': 'ListItem',
-                                position: i + 1,
-                                url: `https://www.ambitiontattoosupply.com/products/${p.slug}`,
-                                name: p.name,
-                                image: p.image,
-                                offers: {
-                                  '@type': 'Offer',
-                                  price: getProductEffectivePrice(p),
-                                  priceCurrency: 'USD',
-                                  availability: 'https://schema.org/InStock',
+                  {/* JSON-LD Inspector Panel */}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                      <span className="font-mono text-xs text-zinc-400">
+                        Live Rendered JSON-LD Scripts:
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setSeoTab('collection')}
+                          className={`px-2.5 py-1 rounded-sm font-mono text-[11px] font-medium ${
+                            seoTab === 'collection'
+                              ? 'bg-amber-400 text-black'
+                              : 'border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          CollectionPage & ItemList
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSeoTab('breadcrumb')}
+                          className={`px-2.5 py-1 rounded-sm font-mono text-[11px] font-medium ${
+                            seoTab === 'breadcrumb'
+                              ? 'bg-amber-400 text-black'
+                              : 'border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          BreadcrumbList
+                        </button>
+                      </div>
+                    </div>
+
+                    <pre className="max-h-80 overflow-y-auto rounded-sm bg-zinc-900/70 p-3.5 text-[11px] font-mono text-amber-300 border border-zinc-800 leading-relaxed">
+                      {JSON.stringify(
+                        seoTab === 'collection'
+                          ? {
+                              '@context': 'https://schema.org',
+                              '@type': 'CollectionPage',
+                              name: `${categoryName} | Ambition Tattoo Supply Official Store`,
+                              description: `Shop ${baseData.total}+ professional ${categoryName.toLowerCase()} at Ambition Tattoo Supply. Premium wireless machines, cartridges, and studio hardware with fast global dispatch.`,
+                              url: `https://www.ambitiontattoosupply.com/categories/${slug}`,
+                              mainEntity: {
+                                '@type': 'ItemList',
+                                numberOfItems: baseData.total,
+                                itemListElement: baseData.products.slice(0, 5).map((p, i) => ({
+                                  '@type': 'ListItem',
+                                  position: i + 1,
+                                  url: `https://www.ambitiontattoosupply.com/products/${p.slug}`,
+                                  name: p.name,
+                                  image: p.image,
+                                  offers: {
+                                    '@type': 'Offer',
+                                    price: getProductEffectivePrice(p),
+                                    priceCurrency: 'USD',
+                                    availability: 'https://schema.org/InStock',
+                                  },
+                                })),
+                              },
+                            }
+                          : {
+                              '@context': 'https://schema.org',
+                              '@type': 'BreadcrumbList',
+                              itemListElement: [
+                                {
+                                  '@type': 'ListItem',
+                                  position: 1,
+                                  name: 'Home',
+                                  item: 'https://www.ambitiontattoosupply.com',
                                 },
-                              })),
+                                {
+                                  '@type': 'ListItem',
+                                  position: 2,
+                                  name: categoryName,
+                                  item: `https://www.ambitiontattoosupply.com/categories/${slug}`,
+                                },
+                              ],
                             },
-                          }
-                        : {
-                            '@context': 'https://schema.org',
-                            '@type': 'BreadcrumbList',
-                            itemListElement: [
-                              {
-                                '@type': 'ListItem',
-                                position: 1,
-                                name: 'Home',
-                                item: 'https://www.ambitiontattoosupply.com',
-                              },
-                              {
-                                '@type': 'ListItem',
-                                position: 2,
-                                name: categoryName,
-                                item: `https://www.ambitiontattoosupply.com/categories/${slug}`,
-                              },
-                            ],
-                          },
-                      null,
-                      2,
-                    )}
-                  </pre>
+                        null,
+                        2,
+                      )}
+                    </pre>
+                  </div>
                 </div>
               )}
             </div>

@@ -1,16 +1,109 @@
 @import "tailwindcss";
 
+@theme {
+  --font-display: "Space Grotesk", "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-brass-300: #e5c878;
+  --color-brass-400: #d4af37;
+  --color-brass-500: #c59b27;
+  --color-brass-600: #9e7a18;
+  --color-obsidian-950: #09090b;
+  --color-obsidian-900: #111114;
+  --color-obsidian-800: #1a1a1f;
+  --color-pedestal: #f2f0eb;
+}
+
 @layer base {
   :root {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
     --brand-gold: #d4af37;
+    --ease-out-expo: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out-quart: cubic-bezier(0.77, 0, 0.175, 1);
+  }
+
+  html {
+    color-scheme: dark;
+    scroll-behavior: smooth;
   }
 
   body {
-    background-color: #0b0c10;
+    background-color: #09090b;
     color: #f4f4f5;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
-      Cantarell, sans-serif;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.025em;
+  }
+
+  code,
+  pre,
+  kbd,
+  .font-mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Precision Hardware Surface & Tactile Micro-interactions */
+.btn-tactile {
+  transition: transform 150ms var(--ease-out-expo), background-color 150ms var(--ease-out-expo),
+    border-color 150ms var(--ease-out-expo), color 150ms var(--ease-out-expo);
+}
+
+.btn-tactile:active {
+  transform: scale(0.97);
+}
+
+/* Studio Lightbox Pedestal for product photography */
+.studio-pedestal {
+  background-color: #ffffff;
+  position: relative;
+  isolation: isolate;
+}
+
+.studio-pedestal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 -1px 0 rgba(9, 9, 11, 0.08);
+  pointer-events: none;
+}
+
+.studio-pedestal img {
+  transition: transform 260ms var(--ease-out-expo);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .group:hover .studio-pedestal img {
+    transform: scale(1.045);
+  }
+}
+
+/* Subtle architectural grid background */
+.bg-hardware-grid {
+  background-size: 40px 40px;
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -17,6 +17,7 @@ import {
   User,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { StudioProductImage } from '~/components/StudioProductImage'
 import { cartStore } from '~/lib/cart'
 import { formatPrice } from '~/lib/utils'
 
@@ -84,7 +85,7 @@ const INITIAL_STUDIO_ORDERS: SavedOrder[] = [
       {
         id: '1437__Color:Black|Stroke:4.2mm',
         name: 'Ambition Soldier Max Wireless Tattoo Machine Pen',
-        image: 'https://www.ambitiontattoosupply.com/media/catalog/product/2/0/2023120618-02.jpg',
+        image: 'https://www.ambitiontattoosupply.com/media/catalog/product/s/o/soldier10.jpg',
         quantity: 1,
         price: 149.99,
         options: [
@@ -97,7 +98,7 @@ const INITIAL_STUDIO_ORDERS: SavedOrder[] = [
         id: '660__0801RL',
         name: 'Ambition Premium Tattoo Cartridge Needles (Box of 20)',
         image:
-          'https://www.ambitiontattoosupply.com/media/catalog/product/5/1/51wye04ziql._sl1000_.jpg',
+          'https://www.ambitiontattoosupply.com/media/catalog/product/5/1/51xcfzt0wll._sl1000_.jpg',
         quantity: 2,
         price: 13.0,
         options: [
@@ -349,17 +350,13 @@ function AccountPage() {
                               className="flex items-center justify-between gap-4 py-1.5"
                             >
                               <div className="flex items-center gap-3 min-w-0">
-                                <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-zinc-950 border border-zinc-800 p-1 flex items-center justify-center">
-                                  {item.image ? (
-                                    <img
-                                      src={item.image}
-                                      alt={item.name}
-                                      className="h-full w-full object-contain"
-                                    />
-                                  ) : (
-                                    <Package className="h-5 w-5 text-zinc-600" />
-                                  )}
-                                </div>
+                                <StudioProductImage
+                                  src={item.image}
+                                  alt={item.name}
+                                  productName={item.name}
+                                  size="sm"
+                                  className="h-12 w-12 shrink-0 rounded-sm"
+                                />
                                 <div className="min-w-0">
                                   <h4 className="text-xs font-semibold text-white truncate hover:text-amber-400 transition">
                                     {item.name}

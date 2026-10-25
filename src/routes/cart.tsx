@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react'
 import { useState } from 'react'
+import { StudioProductImage } from '~/components/StudioProductImage'
 import { useCart } from '~/lib/cart'
 import { formatPrice } from '~/lib/utils'
 
@@ -184,17 +185,16 @@ function CartPage() {
                 <Link
                   to="/products/$slug"
                   params={{ slug: item.slug }}
-                  className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-zinc-950 p-2 border border-zinc-800 flex items-center justify-center hover:opacity-80 transition"
+                  className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border border-zinc-800 hover:border-amber-400/50 transition"
                 >
-                  {item.image ? (
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="h-full w-full object-contain"
-                    />
-                  ) : (
-                    <Package className="h-8 w-8 text-zinc-600" />
-                  )}
+                  <StudioProductImage
+                    src={item.image}
+                    alt={item.name}
+                    productName={item.name}
+                    sku={item.sku}
+                    size="sm"
+                    className="h-full w-full"
+                  />
                 </Link>
 
                 <div className="space-y-1">
