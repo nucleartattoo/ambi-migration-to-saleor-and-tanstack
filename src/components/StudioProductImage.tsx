@@ -131,7 +131,8 @@ export function StudioProductImage({
             alt={alt}
             onLoad={() => setLoadedSrc(validSrc)}
             onError={() => setFailedSrc(validSrc)}
-            loading={priority ? 'eager' : 'lazy'}
+            loading={priority || size === 'sm' ? 'eager' : undefined}
+            decoding="async"
             className={`h-full w-full object-cover ${imgClassName}`}
           />
         </div>

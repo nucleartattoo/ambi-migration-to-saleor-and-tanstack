@@ -282,8 +282,36 @@ function CartPage() {
                 Promo or Studio Discount Code
               </label>
               <span className="text-[11px] text-zinc-500">
-                Try <code className="text-amber-400">AMBI10</code> or{' '}
-                <code className="text-amber-400">SALEOR20</code>
+                Try{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPromoInput('AMBI10')
+                    const res = applyDiscount('AMBI10')
+                    setPromoFeedback({
+                      type: res.success ? 'success' : 'error',
+                      message: res.message,
+                    })
+                  }}
+                  className="font-mono text-amber-400 underline-offset-2 hover:underline"
+                >
+                  AMBI10
+                </button>{' '}
+                or{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPromoInput('SALEOR20')
+                    const res = applyDiscount('SALEOR20')
+                    setPromoFeedback({
+                      type: res.success ? 'success' : 'error',
+                      message: res.message,
+                    })
+                  }}
+                  className="font-mono text-amber-400 underline-offset-2 hover:underline"
+                >
+                  SALEOR20
+                </button>
               </span>
             </div>
 
