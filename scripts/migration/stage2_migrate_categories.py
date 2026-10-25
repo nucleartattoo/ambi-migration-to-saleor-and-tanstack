@@ -11,8 +11,22 @@ from saleor_client import SaleorClient
 from state_manager import StateManager
 
 def slugify(text):
-    text = re.sub(r'[^\w\s-]', '', str(text).lower()).strip()
-    return re.sub(r'[-\s]+', '-', text)
+    text = str(text).lower()
+    text = re.sub(r"[^a-z0-9]+", "-", text)
+    return text.strip("-")
+
+
+TOP_CATEGORY_SLUG_MAP = {
+    "51": "tattoo-machines",
+    "118": "tattoo-needles",
+    "55": "tattoo-power-supplies",
+    "142": "tattoo-kits",
+    "54": "tattoo-grips",
+    "56": "needles",
+    "57": "cartridges",
+    "58": "tattoo-accessories",
+}
+
 
 def migrate_categories(dry_run=False):
     print("==================================================")
@@ -31,27 +45,34 @@ def migrate_categories(dry_run=False):
     state = StateManager(dry_run=dry_run)
 
     nodes = []
+    slug_seen = {}
 
     def collect(node, parent_id=None):
-        m_id = node.get("id")
+        m_id = str(node.get("id"))
         level = node.get("level", 0)
         name = node.get("name", "").strip()
         is_active = node.get("is_active", True)
-        slug = slugify(name) or f"category-{m_id}"
+        base_slug = TOP_CATEGORY_SLUG_MAP.get(m_id) or slugify(name) or f"category-{m_id}"
 
         # Don't migrate root node (ID 1 or 2 usually "Default Category" or "Tattoo")
-        if level > 1:
+        if level > 1 and m_id not in ("1", "2"):
+            if base_slug in slug_seen and slug_seen[base_slug] != m_id:
+                final_slug = f"{base_slug}-{m_id}"
+            else:
+                final_slug = base_slug
+            slug_seen[final_slug] = m_id
+
             nodes.append({
-                "m_id": m_id,
+                "m_id": node.get("id"),
                 "parent_m_id": parent_id,
                 "name": name,
-                "slug": slug,
+                "slug": final_slug,
                 "level": level,
                 "is_active": is_active
             })
 
         for child in node.get("children_data", []):
-            collect(child, parent_id=m_id)
+            collect(child, parent_id=node.get("id"))
 
     collect(root_tree)
     # Sort by level so parents are created before children
@@ -77,11 +98,11 @@ def migrate_categories(dry_run=False):
 
         parent_s_id = state.get_category(parent_m_id) if parent_m_id else None
 
-        print(f"  Creating Category: {name} (Level {cat['level']}, Parent Saleor ID: {parent_s_id or 'ROOT'})...", end="")
+        print(f"  Creating Category: {name} (Slug: {slug}, Level {cat['level']}, Parent Saleor ID: {parent_s_id or 'ROOT'})...", end="")
         try:
             s_cat = client.create_category(
                 name=name,
-                slug=f"{slug}-{m_id}",
+                slug=slug,
                 parent_id=parent_s_id
             )
             s_id = s_cat.get("id") if s_cat else f"mock-cat-{m_id}"

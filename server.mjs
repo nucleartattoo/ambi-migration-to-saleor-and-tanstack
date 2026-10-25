@@ -1,10 +1,10 @@
 import { readFile, stat } from 'node:fs/promises'
 import { createServer } from 'node:http'
-import { extname, join } from 'node:path'
+import { extname, resolve, sep } from 'node:path'
 import app from './dist/server/server.js'
 
 const PORT = Number(process.env.PORT) || 3003
-const CLIENT_DIR = join(process.cwd(), 'dist/client')
+const CLIENT_DIR = resolve(process.cwd(), 'dist/client')
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -16,6 +16,8 @@ const MIME_TYPES = {
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
   '.woff2': 'font/woff2',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
 }
 
 const server = createServer(async (req, res) => {
@@ -35,21 +37,26 @@ const server = createServer(async (req, res) => {
       )
     }
 
-    // 1. Static asset check from dist/client
+    // 1. Static asset check from dist/client (with path traversal guard)
     if (url.pathname !== '/' && !url.pathname.endsWith('/')) {
-      const filePath = join(CLIENT_DIR, url.pathname)
-      try {
-        const fileStat = await stat(filePath)
-        if (fileStat.isFile()) {
-          const data = await readFile(filePath)
-          const ext = extname(filePath).toLowerCase()
-          res.writeHead(200, {
-            'Content-Type': MIME_TYPES[ext] || 'application/octet-stream',
-            'Cache-Control': 'public, max-age=31536000, immutable',
-          })
-          return res.end(data)
-        }
-      } catch {}
+      const filePath = resolve(CLIENT_DIR, `.${url.pathname}`)
+      if (filePath.startsWith(`${CLIENT_DIR}${sep}`)) {
+        try {
+          const fileStat = await stat(filePath)
+          if (fileStat.isFile()) {
+            const data = await readFile(filePath)
+            const ext = extname(filePath).toLowerCase()
+            const isSeoMetaFile = url.pathname === '/robots.txt' || url.pathname === '/sitemap.xml'
+            res.writeHead(200, {
+              'Content-Type': MIME_TYPES[ext] || 'application/octet-stream',
+              'Cache-Control': isSeoMetaFile
+                ? 'public, max-age=3600, must-revalidate'
+                : 'public, max-age=31536000, immutable',
+            })
+            return res.end(data)
+          }
+        } catch {}
+      }
     }
 
     // 2. Delegate to TanStack Start SSR handler
@@ -74,9 +81,9 @@ const server = createServer(async (req, res) => {
     const webRes = await app.fetch(webReq)
 
     const responseHeaders = {}
-    webRes.headers.forEach((val, key) => {
+    for (const [key, val] of webRes.headers.entries()) {
       responseHeaders[key] = val
-    })
+    }
 
     res.writeHead(webRes.status, responseHeaders)
 

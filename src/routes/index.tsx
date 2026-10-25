@@ -20,9 +20,10 @@ import {
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ProductCard } from '~/components/ProductCard'
-import { getFeaturedProducts, getTopCategories } from '~/lib/catalog'
+import { fetchHomeCatalogData } from '~/lib/catalog.functions'
 
 export const Route = createFileRoute('/')({
+  loader: () => fetchHomeCatalogData(),
   head: () => {
     const title = 'Ambition Tattoo Supply | Official Store - Wireless Machines & Cartridges'
     const description =
@@ -72,7 +73,7 @@ export const Route = createFileRoute('/')({
         '@type': 'SearchAction',
         target: {
           '@type': 'EntryPoint',
-          urlTemplate: `${siteUrl}/search?q={search_term_string}`,
+          urlTemplate: `${siteUrl}/?q={search_term_string}`,
         },
         'query-input': 'required name=search_term_string',
       },
@@ -94,8 +95,8 @@ export const Route = createFileRoute('/')({
         {
           '@type': 'ListItem',
           position: 2,
-          name: 'Ambition Soldier Max Wireless Battery Pen',
-          url: `${siteUrl}/products/ambition-soldier-max-wireless-battery-pen`,
+          name: 'Ambition Soldier Max Wireless Tattoo Machine Pen',
+          url: `${siteUrl}/products/ambition-soldier-max-wireless-tattoo-machine-pen`,
         },
         {
           '@type': 'ListItem',
@@ -106,8 +107,8 @@ export const Route = createFileRoute('/')({
         {
           '@type': 'ListItem',
           position: 4,
-          name: 'Ambition Wireless Power Supply Battery Pack',
-          url: `${siteUrl}/products/ambition-wireless-power-supply-pack`,
+          name: 'Ambition Soldier Max Wireless Battery',
+          url: `${siteUrl}/products/ambition-soldier-max-wireless-battery`,
         },
       ],
     }
@@ -210,14 +211,16 @@ const HERO_SLIDES: HeroSlide[] = [
 ]
 
 function HomePage() {
-  const topCategories = getTopCategories()
+  const { topCategories, featuredByTab } = Route.useLoaderData()
 
   // Carousel State
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
 
   // Featured Category Filter state
-  const [activeFilter, setActiveFilter] = useState<string>('all')
+  const [activeFilter, setActiveFilter] = useState<
+    'all' | 'tattoo-machines' | 'tattoo-needles' | 'tattoo-power-supplies'
+  >('all')
 
   // SEO Debug Panel State
   const [showSeoDebug, setShowSeoDebug] = useState(false)
@@ -243,10 +246,7 @@ function HomePage() {
   }
 
   // Get filtered featured products
-  const featuredProducts = getFeaturedProducts(
-    8,
-    activeFilter === 'all' ? undefined : activeFilter,
-  )
+  const featuredProducts = featuredByTab[activeFilter] || featuredByTab.all
 
   return (
     <div className="space-y-16">
@@ -320,7 +320,9 @@ function HomePage() {
                 <div className="absolute bottom-4 left-4 right-4 z-20 flex items-center justify-between rounded-xl bg-zinc-900/90 border border-zinc-800/90 px-4 py-2.5 backdrop-blur-md">
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-[11px] font-semibold text-white">In Stock • Official Supply</span>
+                    <span className="text-[11px] font-semibold text-white">
+                      In Stock • Official Supply
+                    </span>
                   </div>
                   <span className="text-[10px] uppercase font-bold text-amber-400 tracking-wider">
                     Slide {currentSlideIndex + 1} of {HERO_SLIDES.length}
@@ -419,18 +421,21 @@ function HomePage() {
               Featured Studio Equipment
             </h2>
             <p className="mt-1 text-xs text-zinc-400">
-              High-performance wireless pens and verified cartridge supplies from authentic AMBI catalog.
+              High-performance wireless pens and verified cartridge supplies from authentic AMBI
+              catalog.
             </p>
           </div>
 
           {/* Category Filter Pills */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-            {[
-              { id: 'all', label: 'All Picks' },
-              { id: 'tattoo-machines', label: 'Wireless Machines' },
-              { id: 'tattoo-needles', label: 'Cartridge Needles' },
-              { id: 'tattoo-power-supplies', label: 'Batteries & Power' },
-            ].map((tab) => (
+            {(
+              [
+                { id: 'all', label: 'All Picks' },
+                { id: 'tattoo-machines', label: 'Wireless Machines' },
+                { id: 'tattoo-needles', label: 'Cartridge Needles' },
+                { id: 'tattoo-power-supplies', label: 'Batteries & Power' },
+              ] as const
+            ).map((tab) => (
               <button
                 key={tab.id}
                 type="button"
@@ -517,7 +522,8 @@ function HomePage() {
                   </span>
                 </h3>
                 <p className="text-xs text-zinc-400 mt-0.5">
-                  Structured data with OnlineStore, WebSite with Sitelinks Searchbox, and Featured ItemList.
+                  Structured data with OnlineStore, WebSite with Sitelinks Searchbox, and Featured
+                  ItemList.
                 </p>
               </div>
             </div>
@@ -529,7 +535,11 @@ function HomePage() {
             >
               <Code className="h-3.5 w-3.5 text-amber-400" />
               <span>{showSeoDebug ? 'Hide JSON-LD' : 'Inspect JSON-LD'}</span>
-              {showSeoDebug ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              {showSeoDebug ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
             </button>
           </div>
 
@@ -550,14 +560,18 @@ function HomePage() {
                   Ambition Tattoo Supply | Official Store - Wireless Machines &amp; Cartridges
                 </h4>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Ambition Tattoo Supply official direct store. Explore industry-leading wireless tattoo machine pens, Revolution cartridges, power supplies, and tattoo kits with direct studio warranty.
+                  Ambition Tattoo Supply official direct store. Explore industry-leading wireless
+                  tattoo machine pens, Revolution cartridges, power supplies, and tattoo kits with
+                  direct studio warranty.
                 </p>
               </div>
 
               {/* Sitelinks Searchbox Simulation */}
               <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-2 flex items-center gap-2 max-w-md">
                 <Search className="h-3.5 w-3.5 text-zinc-500" />
-                <span className="text-xs text-zinc-500 font-sans italic">Search ambitiontattoosupply.com...</span>
+                <span className="text-xs text-zinc-500 font-sans italic">
+                  Search ambitiontattoosupply.com...
+                </span>
               </div>
 
               {/* Sitelinks Navigation Grid */}
@@ -566,19 +580,25 @@ function HomePage() {
                   <span className="text-xs font-medium text-blue-400 hover:underline cursor-pointer">
                     Wireless Tattoo Machines
                   </span>
-                  <p className="text-[11px] text-zinc-500 line-clamp-1">Soldier Max, Storm Wand, Ninja Pro</p>
+                  <p className="text-[11px] text-zinc-500 line-clamp-1">
+                    Soldier Max, Storm Wand, Ninja Pro
+                  </p>
                 </div>
                 <div className="space-y-0.5">
                   <span className="text-xs font-medium text-blue-400 hover:underline cursor-pointer">
                     Revolution Cartridge Needles
                   </span>
-                  <p className="text-[11px] text-zinc-500 line-clamp-1">EO gas sterilized 08/10/12 RL RS</p>
+                  <p className="text-[11px] text-zinc-500 line-clamp-1">
+                    EO gas sterilized 08/10/12 RL RS
+                  </p>
                 </div>
                 <div className="space-y-0.5">
                   <span className="text-xs font-medium text-blue-400 hover:underline cursor-pointer">
                     Studio Wholesale Program
                   </span>
-                  <p className="text-[11px] text-zinc-500 line-clamp-1">20% tiered equipment discounts</p>
+                  <p className="text-[11px] text-zinc-500 line-clamp-1">
+                    20% tiered equipment discounts
+                  </p>
                 </div>
               </div>
             </div>
@@ -699,7 +719,7 @@ function HomePage() {
                             target: {
                               '@type': 'EntryPoint',
                               urlTemplate:
-                                'https://www.ambitiontattoosupply.com/search?q={search_term_string}',
+                                'https://www.ambitiontattoosupply.com/?q={search_term_string}',
                             },
                             'query-input': 'required name=search_term_string',
                           },
@@ -719,8 +739,8 @@ function HomePage() {
                             {
                               '@type': 'ListItem',
                               position: 2,
-                              name: 'Ambition Soldier Max Wireless Battery Pen',
-                              url: 'https://www.ambitiontattoosupply.com/products/ambition-soldier-max-wireless-battery-pen',
+                              name: 'Ambition Soldier Max Wireless Tattoo Machine Pen',
+                              url: 'https://www.ambitiontattoosupply.com/products/ambition-soldier-max-wireless-tattoo-machine-pen',
                             },
                             {
                               '@type': 'ListItem',
@@ -731,8 +751,8 @@ function HomePage() {
                             {
                               '@type': 'ListItem',
                               position: 4,
-                              name: 'Ambition Wireless Power Supply Battery Pack',
-                              url: 'https://www.ambitiontattoosupply.com/products/ambition-wireless-power-supply-pack',
+                              name: 'Ambition Soldier Max Wireless Battery',
+                              url: 'https://www.ambitiontattoosupply.com/products/ambition-soldier-max-wireless-battery',
                             },
                           ],
                         },

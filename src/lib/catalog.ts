@@ -1,5 +1,3 @@
-import catalogData from '~/data/catalog.json'
-
 export interface CatalogCategory {
   id: string
   name: string
@@ -18,7 +16,8 @@ export interface ProductOptionValue {
 
 export interface ProductOption {
   id: string
-  attribute_id: string
+  attribute_id?: string
+  code?: string
   label: string
   values: ProductOptionValue[]
 }
@@ -53,72 +52,144 @@ export interface CatalogProduct {
   short_description: string
 }
 
-const rawCategories: Record<string, CatalogCategory> = (catalogData.categories ||
-  {}) as unknown as Record<string, CatalogCategory>
-const categoryDescendants: Record<string, string[]> = ((catalogData as any).category_descendants ||
-  {}) as Record<string, string[]>
-const rawProducts = (catalogData.products || []) as unknown as any[]
-const allProducts: CatalogProduct[] = rawProducts.map((p) => ({
-  ...p,
-  children: p.children || p.variants || [],
-  variants: p.variants || p.children || [],
-}))
+// Top 7 Primary active categories in the AMBI catalog
+export const TOP_CATEGORY_IDS = ['51', '118', '55', '142', '54', '136', '58']
 
-// Top 7 Primary categories
-export const TOP_CATEGORY_IDS = ['51', '118', '55', '142', '54', '180', '58']
-
-/**
- * Returns the 7 primary storefront categories with their nested subcategories
- */
-export function getTopCategories(): CatalogCategory[] {
-  return TOP_CATEGORY_IDS.map((id) => {
-    const cat = rawCategories[id]
-    if (!cat) {
-      return {
-        id,
-        name: 'Category',
-        slug: 'category',
-        parent_id: '2',
-        product_count: 0,
+const TOP_CATEGORIES_STATIC: CatalogCategory[] = [
+  {
+    id: '51',
+    name: 'Tattoo Machines',
+    slug: 'tattoo-machines',
+    parent_id: '2',
+    product_count: 43,
+    is_active: true,
+    children_ids: ['133', '134'],
+    subcategories: [
+      {
+        id: '133',
+        name: 'Wireless Tattoo Machines',
+        slug: 'wireless-tattoo-machines',
+        parent_id: '51',
+        product_count: 36,
         is_active: true,
         children_ids: [],
-        subcategories: [],
-      }
-    }
-
-    const subcategories = (cat.children_ids || [])
-      .map((childId) => rawCategories[childId])
-      .filter(Boolean)
-
-    return {
-      ...cat,
-      subcategories,
-    }
-  })
-}
+      },
+      {
+        id: '134',
+        name: 'Rotary tattoo machines',
+        slug: 'rotary-tattoo-machines',
+        parent_id: '51',
+        product_count: 7,
+        is_active: true,
+        children_ids: ['82', '83', '85'],
+      },
+    ],
+  },
+  {
+    id: '118',
+    name: 'Tattoo Needles',
+    slug: 'tattoo-needles',
+    parent_id: '2',
+    product_count: 4,
+    is_active: true,
+    children_ids: [],
+    subcategories: [],
+  },
+  {
+    id: '55',
+    name: 'Tattoo Power Supplies',
+    slug: 'tattoo-power-supplies',
+    parent_id: '2',
+    product_count: 21,
+    is_active: true,
+    children_ids: ['136', '78'],
+    subcategories: [
+      {
+        id: '136',
+        name: 'Wireless Tattoo Battery',
+        slug: 'wireless-tattoo-battery',
+        parent_id: '55',
+        product_count: 14,
+        is_active: true,
+        children_ids: ['132', '77'],
+      },
+      {
+        id: '78',
+        name: 'Tattoo Power Supply',
+        slug: 'tattoo-power-supply',
+        parent_id: '55',
+        product_count: 7,
+        is_active: true,
+        children_ids: [],
+      },
+    ],
+  },
+  {
+    id: '142',
+    name: 'Tattoo Kits',
+    slug: 'tattoo-kits',
+    parent_id: '2',
+    product_count: 15,
+    is_active: true,
+    children_ids: [],
+    subcategories: [],
+  },
+  {
+    id: '54',
+    name: 'Tattoo Grips',
+    slug: 'tattoo-grips',
+    parent_id: '2',
+    product_count: 8,
+    is_active: true,
+    children_ids: ['137', '135'],
+    subcategories: [
+      {
+        id: '137',
+        name: 'Metal Tattoo Grip',
+        slug: 'metal-tattoo-grip',
+        parent_id: '54',
+        product_count: 1,
+        is_active: true,
+        children_ids: [],
+      },
+      {
+        id: '135',
+        name: 'Disposable Tattoo Grip',
+        slug: 'disposable-tattoo-grip',
+        parent_id: '54',
+        product_count: 7,
+        is_active: true,
+        children_ids: [],
+      },
+    ],
+  },
+  {
+    id: '136',
+    name: 'Wireless Tattoo Battery',
+    slug: 'wireless-tattoo-battery',
+    parent_id: '55',
+    product_count: 14,
+    is_active: true,
+    children_ids: ['132', '77'],
+    subcategories: [],
+  },
+  {
+    id: '58',
+    name: 'Tattoo Accessories',
+    slug: 'tattoo-accessories',
+    parent_id: '2',
+    product_count: 9,
+    is_active: true,
+    children_ids: [],
+    subcategories: [],
+  },
+]
 
 /**
- * Get any category by slug
+ * Returns the 7 primary storefront categories with their active subcategories
  */
-export function getCategoryBySlug(slug: string): CatalogCategory | undefined {
-  const match = Object.values(rawCategories).find(
-    (c) => c.slug === slug || c.slug === slug.toLowerCase(),
-  )
-  if (!match) return undefined
-
-  const subcategories = (match.children_ids || []).map((cid) => rawCategories[cid]).filter(Boolean)
-
-  return {
-    ...match,
-    subcategories,
-  }
-}
-
-/**
- * Get all categories
- */
-export function getAllCategories(): CatalogCategory[] {
-  return Object.values(rawCategories)
+export function getTopCategories(): CatalogCategory[] {
+  return TOP_CATEGORIES_STATIC
 }
 
 export function getProductEffectivePrice(p: CatalogProduct): number {
@@ -127,130 +198,4 @@ export function getProductEffectivePrice(p: CatalogProduct): number {
     .map((c) => c.price)
     .filter((pr) => pr && pr > 0)
   return childPrices.length > 0 ? Math.min(...childPrices) : 0
-}
-
-/**
- * Get products by category slug (including products in child subcategories)
- */
-export function getProductsByCategory(
-  categorySlug: string,
-  options?: {
-    sortBy?: 'featured' | 'price-asc' | 'price-desc' | 'name'
-    limit?: number
-    offset?: number
-  },
-): {
-  products: CatalogProduct[]
-  total: number
-  category?: CatalogCategory
-} {
-  const category = getCategoryBySlug(categorySlug)
-
-  let candidateCids: Set<string>
-  if (category) {
-    const desc = categoryDescendants[category.id] || [category.id]
-    candidateCids = new Set(desc)
-  } else {
-    candidateCids = new Set()
-  }
-
-  // Filter products: must be visible individually and match one of candidate cids
-  let matched = allProducts.filter((p) => {
-    if (!p.is_visible_individually) return false
-    if (candidateCids.size === 0) return true
-    return p.category_ids.some((cid) => candidateCids.has(cid))
-  })
-
-  // If matched count is too small (e.g. products only tagged on children), also include configurable products
-  if (matched.length === 0 && category) {
-    matched = allProducts.filter(
-      (p) =>
-        p.is_visible_individually && p.name.toLowerCase().includes(category.name.toLowerCase()),
-    )
-  }
-
-  // Sort
-  const sortBy = options?.sortBy || 'featured'
-  if (sortBy === 'price-asc') {
-    matched.sort((a, b) => getProductEffectivePrice(a) - getProductEffectivePrice(b))
-  } else if (sortBy === 'price-desc') {
-    matched.sort((a, b) => getProductEffectivePrice(b) - getProductEffectivePrice(a))
-  } else if (sortBy === 'name') {
-    matched.sort((a, b) => a.name.localeCompare(b.name))
-  } else {
-    // Featured: prioritize products with images and higher prices/configurable
-    matched.sort((a, b) => {
-      const aPrice = getProductEffectivePrice(a)
-      const bPrice = getProductEffectivePrice(b)
-      const aScore = (a.image ? 10 : 0) + (a.options.length > 0 ? 5 : 0) + (aPrice > 0 ? 2 : 0)
-      const bScore = (b.image ? 10 : 0) + (b.options.length > 0 ? 5 : 0) + (bPrice > 0 ? 2 : 0)
-      return bScore - aScore
-    })
-  }
-
-  const offset = options?.offset || 0
-  const limit = options?.limit || matched.length
-
-  return {
-    products: matched.slice(offset, offset + limit),
-    total: matched.length,
-    category,
-  }
-}
-
-/**
- * Get product by slug or sku
- */
-export function getProductBySlug(slugOrSku: string): CatalogProduct | undefined {
-  return (
-    allProducts.find((p) => p.slug === slugOrSku) ||
-    allProducts.find((p) => p.sku.toLowerCase() === slugOrSku.toLowerCase()) ||
-    allProducts.find((p) => p.id === slugOrSku)
-  )
-}
-
-/**
- * Get featured products for the storefront homepage
- */
-export function getFeaturedProducts(limit = 8, categorySlug?: string): CatalogProduct[] {
-  let candidates = allProducts.filter(
-    (p) => p.is_visible_individually && p.image && getProductEffectivePrice(p) > 0,
-  )
-
-  if (categorySlug && categorySlug !== 'all') {
-    const cat = getCategoryBySlug(categorySlug)
-    if (cat) {
-      const desc = categoryDescendants[cat.id] || [cat.id]
-      const cidSet = new Set(desc)
-      candidates = candidates.filter((p) => p.category_ids.some((cid) => cidSet.has(cid)))
-    }
-  }
-
-  // Prioritize products with rich options and full galleries
-  candidates.sort((a, b) => {
-    const aScore = (a.options.length > 0 ? 10 : 0) + (a.gallery.length > 1 ? 5 : 0)
-    const bScore = (b.options.length > 0 ? 10 : 0) + (b.gallery.length > 1 ? 5 : 0)
-    return bScore - aScore
-  })
-
-  return candidates.slice(0, limit)
-}
-
-/**
- * Full-text search products by query
- */
-export function searchProducts(query: string, limit = 20): CatalogProduct[] {
-  if (!query || query.trim() === '') return []
-  const q = query.toLowerCase().trim()
-
-  return allProducts
-    .filter((p) => {
-      if (!p.is_visible_individually) return false
-      return (
-        p.name.toLowerCase().includes(q) ||
-        p.sku.toLowerCase().includes(q) ||
-        p.short_description.toLowerCase().includes(q)
-      )
-    })
-    .slice(0, limit)
 }

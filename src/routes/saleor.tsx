@@ -12,7 +12,7 @@ import {
   ShoppingBag,
   Zap,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   type ShopInfo,
   completeSaleorCheckout,
@@ -69,13 +69,7 @@ function SaleorIntegrationPage() {
   const [checkoutTesting, setCheckoutTesting] = useState(false)
   const [checkoutResult, setCheckoutResult] = useState<any>(null)
 
-  // Auto-ping on initial mount
-  useEffect(() => {
-    handlePing(config.endpoint)
-    handleFetchProducts()
-  }, [config.endpoint])
-
-  const handlePing = async (endpointToTest?: string) => {
+  const handlePing = useCallback(async () => {
     setPingStatus({ loading: true })
     const res = await fetchSaleorShopInfo()
     if (res.success && res.data) {
@@ -93,28 +87,9 @@ function SaleorIntegrationPage() {
         error: res.error || 'Connection failed',
       })
     }
-  }
+  }, [])
 
-  const handleSaveConfig = (e: React.FormEvent) => {
-    e.preventDefault()
-    setSaleorConfig(customEndpoint, customChannel)
-    const updated = getSaleorConfig()
-    setConfig(updated)
-    handlePing(updated.endpoint)
-    handleFetchProducts()
-  }
-
-  const handleApplyPreset = (endpoint: string, channel: string) => {
-    setCustomEndpoint(endpoint)
-    setCustomChannel(channel)
-    setSaleorConfig(endpoint, channel)
-    const updated = getSaleorConfig()
-    setConfig(updated)
-    handlePing(endpoint)
-    handleFetchProducts()
-  }
-
-  const handleFetchProducts = async () => {
+  const handleFetchProducts = useCallback(async () => {
     setProductsLoading(true)
     setProductsError(null)
     const res = await fetchSaleorProducts({ first: 8 })
@@ -125,6 +100,31 @@ function SaleorIntegrationPage() {
       setProducts(res.products)
       setProductsTotal(res.totalCount)
     }
+  }, [])
+
+  // Auto-ping on initial mount
+  useEffect(() => {
+    handlePing()
+    handleFetchProducts()
+  }, [handlePing, handleFetchProducts])
+
+  const handleSaveConfig = (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaleorConfig(customEndpoint, customChannel)
+    const updated = getSaleorConfig()
+    setConfig(updated)
+    handlePing()
+    handleFetchProducts()
+  }
+
+  const handleApplyPreset = (endpoint: string, channel: string) => {
+    setCustomEndpoint(endpoint)
+    setCustomChannel(channel)
+    setSaleorConfig(endpoint, channel)
+    const updated = getSaleorConfig()
+    setConfig(updated)
+    handlePing()
+    handleFetchProducts()
   }
 
   const [checkoutStep, setCheckoutStep] = useState<string>('')
@@ -587,7 +587,6 @@ function SaleorIntegrationPage() {
                 product.pricing?.priceRange?.start?.gross?.amount ??
                 product.variants?.[0]?.pricing?.price?.gross?.amount ??
                 0
-              const currency = product.pricing?.priceRange?.start?.gross?.currency ?? 'USD'
 
               return (
                 <div

@@ -30,8 +30,12 @@ def generate_catalog():
 
     # 1. Attribute options dictionary: (attribute_id, value_index) -> label
     attr_opts = {}
+    attr_codes = {}
     for a in attrs_raw.get("attributes", []):
         aid = str(a.get("attribute_id"))
+        acode = a.get("attribute_code")
+        if aid and acode:
+            attr_codes[aid] = acode
         for opt in a.get("options", []):
             if opt.get("value"):
                 attr_opts[(aid, str(opt.get("value")))] = opt.get("label")
@@ -148,7 +152,8 @@ def generate_catalog():
                 })
             conf_options.append({
                 "id": str(opt.get("id")),
-                "code": opt.get("attribute_code") or f"attr_{aid}",
+                "attribute_id": aid,
+                "code": opt.get("attribute_code") or attr_codes.get(aid) or f"attr_{aid}",
                 "label": label,
                 "values": values
             })
@@ -164,7 +169,9 @@ def generate_catalog():
                 "price": float(child.get("price") or price),
                 "image": f"{IMAGE_BASE}{c_img}" if c_img and c_img != "no_selection" else main_img,
                 "attributes": {
-                    opt["code"]: c_attrs.get(opt["code"]) for opt in conf_options if opt["code"] in c_attrs
+                    opt["code"]: str(c_attrs.get(opt["code"]))
+                    for opt in conf_options
+                    if opt["code"] in c_attrs and c_attrs.get(opt["code"]) is not None
                 }
             })
 

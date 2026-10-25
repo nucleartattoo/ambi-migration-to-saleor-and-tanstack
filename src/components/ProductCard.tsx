@@ -20,13 +20,17 @@ export function ProductCard({ product }: ProductCardProps) {
   const effectivePrice = isCatalogProduct
     ? getProductEffectivePrice(product)
     : product.pricing?.priceRange?.start?.gross?.amount || 0
-  const hasRange = isCatalogProduct && (!product.price || product.price === 0) && (product.variants?.length || 0) > 0
+  const hasRange =
+    isCatalogProduct &&
+    (!product.price || product.price === 0) &&
+    (product.variants?.length || 0) > 0
 
   const [imgSrc, setImgSrc] = useState<string | null>(rawImage || null)
 
-  const formattedPrice = effectivePrice > 0
-    ? `${hasRange ? 'From ' : ''}${formatPrice(effectivePrice)}`
-    : 'Studio Inquire'
+  const formattedPrice =
+    effectivePrice > 0
+      ? `${hasRange ? 'From ' : ''}${formatPrice(effectivePrice)}`
+      : 'Studio Inquire'
 
   return (
     <Link

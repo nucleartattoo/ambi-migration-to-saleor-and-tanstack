@@ -16,12 +16,8 @@ import {
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useCart } from '~/lib/cart'
-import {
-  type CatalogProduct,
-  getProductEffectivePrice,
-  getTopCategories,
-  searchProducts,
-} from '~/lib/catalog'
+import { type CatalogProduct, getProductEffectivePrice, getTopCategories } from '~/lib/catalog'
+import { searchCatalogProducts } from '~/lib/catalog.functions'
 import { formatPrice } from '~/lib/utils'
 
 const QUICK_SEARCH_TAGS = [
@@ -60,12 +56,25 @@ export function Header() {
   }, [])
 
   useEffect(() => {
+    let active = true
     if (searchQuery.trim().length > 1) {
-      setSearchResults(searchProducts(searchQuery, 8))
-      setSelectedIndex(0)
+      searchCatalogProducts({ data: { query: searchQuery, limit: 8 } })
+        .then((results) => {
+          if (!active) return
+          setSearchResults(results)
+          setSelectedIndex(results.length > 0 ? 0 : -1)
+        })
+        .catch(() => {
+          if (!active) return
+          setSearchResults([])
+          setSelectedIndex(-1)
+        })
     } else {
       setSearchResults([])
       setSelectedIndex(-1)
+    }
+    return () => {
+      active = false
     }
   }, [searchQuery])
 
@@ -204,12 +213,10 @@ export function Header() {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
+          <button
+            type="button"
+            className="fixed inset-0 w-full h-full bg-black/80 backdrop-blur-sm transition-opacity cursor-default"
             onClick={() => setMobileMenuOpen(false)}
-            onKeyDown={() => setMobileMenuOpen(false)}
-            role="button"
-            tabIndex={0}
             aria-label="Close menu backdrop"
           />
 
@@ -328,27 +335,18 @@ export function Header() {
 
       {/* Interactive Search Modal */}
       {searchOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/80 backdrop-blur-sm transition-opacity"
-          onClick={() => {
-            setSearchOpen(false)
-            setSearchQuery('')
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4">
+          <button
+            type="button"
+            className="fixed inset-0 w-full h-full bg-black/80 backdrop-blur-sm transition-opacity cursor-default"
+            onClick={() => {
               setSearchOpen(false)
               setSearchQuery('')
-            }
-          }}
-          role="button"
-          tabIndex={0}
-          aria-label="Close search backdrop"
-        >
-          <div
-            className="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl relative"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-            role="region"
+            }}
+            aria-label="Close search backdrop"
+          />
+          <section
+            className="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl relative z-10"
             aria-label="Product Search Dialog"
           >
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3 gap-2">
@@ -394,14 +392,21 @@ export function Header() {
             {searchResults.length > 0 && (
               <div className="mt-2.5 flex items-center justify-between px-1 text-[11px] text-zinc-400">
                 <span>
-                  Found <strong className="text-amber-400">{searchResults.length}</strong> matching products
+                  Found <strong className="text-amber-400">{searchResults.length}</strong> matching
+                  products
                 </span>
                 <span className="hidden sm:inline-flex items-center gap-1.5 text-zinc-500 font-mono text-[10px]">
                   <span>Navigate with</span>
-                  <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1 py-0.2 text-zinc-400">↑</kbd>
-                  <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1 py-0.2 text-zinc-400">↓</kbd>
+                  <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1 py-0.2 text-zinc-400">
+                    ↑
+                  </kbd>
+                  <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1 py-0.2 text-zinc-400">
+                    ↓
+                  </kbd>
                   <span>Select with</span>
-                  <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1 py-0.2 text-zinc-400">↵ Enter</kbd>
+                  <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1 py-0.2 text-zinc-400">
+                    ↵ Enter
+                  </kbd>
                 </span>
               </div>
             )}
@@ -455,7 +460,11 @@ export function Header() {
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <span className="text-xs font-bold text-amber-400 whitespace-nowrap">
-                          {hasVariants && <span className="text-[10px] font-normal text-zinc-400 mr-0.5">From </span>}
+                          {hasVariants && (
+                            <span className="text-[10px] font-normal text-zinc-400 mr-0.5">
+                              From{' '}
+                            </span>
+                          )}
                           {formatPrice(effectivePrice)}
                         </span>
                         {isSelected && (
@@ -502,13 +511,19 @@ export function Header() {
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-500">
-                    <span>Press <kbd className="font-mono text-zinc-400 bg-zinc-800 px-1 py-0.5 rounded border border-zinc-700">Esc</kbd> or click outside to dismiss.</span>
+                    <span>
+                      Press{' '}
+                      <kbd className="font-mono text-zinc-400 bg-zinc-800 px-1 py-0.5 rounded border border-zinc-700">
+                        Esc
+                      </kbd>{' '}
+                      or click outside to dismiss.
+                    </span>
                     <span className="font-mono">Ambition x Saleor</span>
                   </div>
                 </div>
               )}
             </div>
-          </div>
+          </section>
         </div>
       )}
     </>

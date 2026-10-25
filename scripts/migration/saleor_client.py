@@ -1,7 +1,15 @@
 import json
+import re
 import urllib.request
 import urllib.parse
 from urllib.error import HTTPError
+
+
+def strip_html(html_text):
+    if not html_text:
+        return ""
+    cleaned = re.sub(r"<[^>]+>", " ", str(html_text))
+    return re.sub(r"\s+", " ", cleaned).strip()
 
 class SaleorClient:
     def __init__(self, config, dry_run=False):
@@ -178,9 +186,10 @@ class SaleorClient:
         if category_id:
             input_data["category"] = category_id
         if description:
+            plain_desc = strip_html(description)[:1000]
             input_data["description"] = json.dumps({
                 "time": 1600000000000,
-                "blocks": [{"type": "paragraph", "data": {"text": description[:1000]}}],
+                "blocks": [{"type": "paragraph", "data": {"text": plain_desc}}],
                 "version": "2.20.0"
             })
 
@@ -263,3 +272,69 @@ class SaleorClient:
         res = self.execute(mutation, {"productId": product_id, "mediaUrl": image_url, "alt": alt})
         media_data = res.get("data", {}).get("productMediaCreate", {})
         return media_data.get("media")
+
+    def create_shipping_method(self, name, shipping_zone_id, method_type="PRICE"):
+        mutation = """
+        mutation CreateShippingRate($input: ShippingPriceInput!) {
+          shippingPriceCreate(input: $input) {
+            shippingMethod {
+              id
+              name
+            }
+            errors {
+              field
+              message
+              code
+            }
+          }
+        }
+        """
+        input_data = {
+            "name": name,
+            "shippingZone": shipping_zone_id,
+            "type": method_type,
+        }
+        res = self.execute(mutation, {"input": input_data})
+        sm_data = res.get("data", {}).get("shippingPriceCreate", {})
+        errors = sm_data.get("errors", [])
+        if errors:
+            print(f"[SaleorClient] shippingPriceCreate notice for {name}: {errors}")
+        return sm_data.get("shippingMethod")
+
+    def update_shipping_method_channel_listing(
+        self, shipping_method_id, channel_id, price=0.0, min_order_price=0.0
+    ):
+        mutation = """
+        mutation UpdateShippingMethodChannelListing(
+          $id: ID!
+          $input: ShippingMethodChannelListingInput!
+        ) {
+          shippingMethodChannelListingUpdate(id: $id, input: $input) {
+            shippingMethod {
+              id
+              name
+            }
+            errors {
+              field
+              message
+              code
+            }
+          }
+        }
+        """
+        input_data = {
+            "addChannels": [
+                {
+                    "channelId": channel_id,
+                    "price": price,
+                    "minimumOrderPrice": min_order_price,
+                }
+            ]
+        }
+        res = self.execute(mutation, {"id": shipping_method_id, "input": input_data})
+        sm_data = res.get("data", {}).get("shippingMethodChannelListingUpdate", {})
+        errors = sm_data.get("errors", [])
+        if errors:
+            print(f"[SaleorClient] shippingMethodChannelListingUpdate notice: {errors}")
+        return sm_data.get("shippingMethod")
+

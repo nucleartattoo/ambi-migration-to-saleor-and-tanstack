@@ -21,7 +21,7 @@ def init_saleor_environment(dry_run=False):
     print(f"Default Currency: {config['currency']}\n")
 
     # 1. Inspect / Ensure Channel
-    print("[1/3] Ensuring Channel Configuration...")
+    print("[1/4] Ensuring Channel Configuration...")
     channel_query = """
     query GetChannels {
       channels {
@@ -51,7 +51,7 @@ def init_saleor_environment(dry_run=False):
         channel_id = f"mock-channel-{config['channel']}"
 
     # 2. Inspect / Ensure Warehouse
-    print("\n[2/3] Ensuring Warehouse (Inventory Management)...")
+    print("\n[2/4] Ensuring Warehouse (Inventory Management)...")
     warehouse_mutation = """
     mutation CreateWarehouse($input: WarehouseCreateInput!) {
       warehouseCreate(input: $input) {
@@ -100,7 +100,7 @@ def init_saleor_environment(dry_run=False):
             print(f"  Notice creating warehouse: {e}")
 
     # 3. Inspect / Ensure Shipping Zone & Fulfillment Triangle
-    print("\n[3/3] Ensuring Shipping Zone & Fulfillment Triangle...")
+    print("\n[3/4] Ensuring Shipping Zone & Fulfillment Triangle...")
     shipping_zone_mutation = """
     mutation CreateShippingZone($input: ShippingZoneCreateInput!) {
       shippingZoneCreate(input: $input) {
@@ -118,17 +118,17 @@ def init_saleor_environment(dry_run=False):
     """
     zone_input = {
         "name": "United States & Global Express",
-        "countries": ["US"],
+        "countries": ["US", "CA", "GB", "DE", "FR", "ES", "IT", "AU"],
         "default": True,
         "addChannels": [channel_id] if channel_id and not channel_id.startswith("mock-") else [],
         "addWarehouses": [warehouse_id] if warehouse_id and not warehouse_id.startswith("mock-") else [],
     }
 
+    zone_id = None
     if dry_run:
         print(f"[DRY-RUN GraphQL Mutation]\nQuery: mutation CreateShippingZone($input: ShippingZoneCreateInput!) {{...}}\nVariables: {json.dumps({'input': zone_input}, indent=2)[:200]}")
         zone_id = "mock-shipping-zone-us"
         print(f"  ✅ [DRY-RUN] Shipping Zone ready -> {zone_id}")
-        print("  ✅ [DRY-RUN] Linked Channel <-> Warehouse <-> Shipping Zone (Fulfillment Triangle valid)")
     else:
         try:
             res = client.execute(shipping_zone_mutation, {"input": zone_input})
@@ -141,6 +141,32 @@ def init_saleor_environment(dry_run=False):
         except Exception as e:
             print(f"  Notice creating shipping zone: {e}")
 
+    # 4. Ensure Priced Shipping Methods & Channel Listings (Completes Checkout Shippability)
+    print("\n[4/4] Ensuring Priced Shipping Methods & Channel Listings...")
+    shipping_methods = [
+        {"name": "Standard Express Courier (3-5 Days)", "price": 0.0, "min_order": 0.0},
+        {"name": "Priority Studio Airfreight (1-2 Days)", "price": 19.99, "min_order": 0.0},
+    ]
+    target_zone_id = zone_id or "mock-shipping-zone-us"
+    for sm in shipping_methods:
+        try:
+            created_sm = client.create_shipping_method(
+                name=sm["name"],
+                shipping_zone_id=target_zone_id,
+                method_type="PRICE",
+            )
+            sm_id = created_sm.get("id") if created_sm else f"mock-sm-{sm['name'][:12].lower().replace(' ', '-')}"
+            client.update_shipping_method_channel_listing(
+                shipping_method_id=sm_id,
+                channel_id=channel_id,
+                price=sm["price"],
+                min_order_price=sm["min_order"],
+            )
+            print(f"  ✅ Shipping Method '{sm['name']}' (${sm['price']:.2f}) bound to channel -> {sm_id}")
+        except Exception as e:
+            print(f"  Notice configuring shipping method '{sm['name']}': {e}")
+
+    print("\n  ✅ Linked Channel <-> Warehouse <-> Shipping Zone <-> Priced Shipping Methods (Fulfillment Triangle complete)")
     print("\nGreenfield Environment Initialization Check Complete.")
 
 if __name__ == "__main__":

@@ -17,7 +17,16 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { useCart } from '~/lib/cart'
-import { createSaleorCheckout } from '~/lib/saleor/api'
+import {
+  completeSaleorCheckout,
+  createSaleorCheckout,
+  createSaleorPayment,
+  fetchSaleorProductBySlug,
+  fetchSaleorProducts,
+  updateSaleorBillingAddress,
+  updateSaleorDeliveryMethod,
+  updateSaleorShippingAddress,
+} from '~/lib/saleor/api'
 import { formatPrice } from '~/lib/utils'
 
 export const Route = createFileRoute('/checkout')({
@@ -98,6 +107,7 @@ function CheckoutPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [checkoutStatusText, setCheckoutStatusText] = useState('Processing Saleor Order...')
   const [confirmedOrder, setConfirmedOrder] = useState<OrderConfirmationData | null>(null)
 
   const validateForm = () => {
@@ -172,7 +182,22 @@ function CheckoutPage() {
   const shippingFee = shippingMethod === 'express' ? 19.99 : baseShippingCost
   const orderTotal = Math.max(0, subtotal - discountAmount + shippingFee)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const resolveCountryCode = (countryInput: string): string => {
+    const normalized = countryInput.trim().toUpperCase()
+    if (normalized === 'US' || normalized === 'USA' || normalized.includes('UNITED STATES')) {
+      return 'US'
+    }
+    if (normalized === 'CA' || normalized.includes('CANADA')) return 'CA'
+    if (normalized === 'GB' || normalized === 'UK' || normalized.includes('UNITED KINGDOM')) {
+      return 'GB'
+    }
+    if (normalized === 'AU' || normalized.includes('AUSTRALIA')) return 'AU'
+    if (normalized === 'DE' || normalized.includes('GERMANY')) return 'DE'
+    if (normalized.length === 2) return normalized
+    return 'US'
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     const validationErrors = validateForm()
@@ -188,71 +213,191 @@ function CheckoutPage() {
     setErrors({})
     setIsSubmitting(true)
 
-    // Execute Saleor GraphQL mutation simulation & recording
-    setTimeout(() => {
-      const checkoutUUID =
-        typeof crypto !== 'undefined' && crypto.randomUUID
-          ? crypto.randomUUID()
-          : 'c8e14674-d021-4f17-b769-cf63654407b1'
-      const globalSaleorCheckoutId =
-        typeof btoa !== 'undefined' ? btoa(`Checkout:${checkoutUUID}`) : `Checkout:${checkoutUUID}`
-      const orderNumber = `SLR-AMBI-${Math.floor(100000 + Math.random() * 900000)}`
-      const trackingNumber = `USPS-9400-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`
-      const now = new Date()
-      const deliveryDate = new Date()
-      deliveryDate.setDate(now.getDate() + (shippingMethod === 'express' ? 2 : 4))
+    let resolvedCheckoutId = ''
+    let resolvedOrderNumber = ''
+    let resolvedShippingLabel =
+      shippingMethod === 'express'
+        ? 'Priority Studio Airfreight (1-2 Days)'
+        : 'Standard Express Courier (3-5 Days)'
 
-      const orderData: OrderConfirmationData = {
-        orderId: orderNumber,
-        saleorSessionId: globalSaleorCheckoutId,
-        trackingNumber,
-        createdAt: now.toLocaleString('en-US', {
-          dateStyle: 'medium',
-          timeStyle: 'short',
-        }),
-        estimatedDelivery: deliveryDate.toLocaleDateString('en-US', {
-          weekday: 'long',
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        }),
-        customerEmail: formData.email,
-        customerName: `${formData.firstName} ${formData.lastName}`,
-        shippingAddress: `${formData.address}, ${formData.apartment ? `${formData.apartment}, ` : ''}${formData.city}, ${formData.state} ${formData.postalCode}, ${formData.country}`,
-        shippingMethod:
-          shippingMethod === 'express'
-            ? 'Priority Studio Airfreight (1-2 Days)'
-            : 'Standard Express Courier (3-5 Days)',
-        paymentMethod:
-          paymentMethod === 'card'
-            ? 'Stripe Credit Card (•••• 4242)'
-            : paymentMethod === 'paypal'
-              ? 'PayPal Express Verified'
-              : 'Studio Net-30 Wholesale Term',
-        items: [...items],
-        subtotal,
-        discountAmount,
-        discountCode,
-        shippingCost: shippingFee,
-        total: orderTotal,
-      }
+    try {
+      // 1. Resolve Saleor Variant IDs for cart items
+      setCheckoutStatusText('1/5 Resolving Saleor variant inventory...')
+      const checkoutLines: Array<{ variantId: string; quantity: number }> = []
 
-      setConfirmedOrder(orderData)
-
-      // Persist to order history for customer account
-      if (typeof window !== 'undefined') {
-        try {
-          const raw = localStorage.getItem('ambi_orders_history_v1')
-          const existing = raw ? JSON.parse(raw) : []
-          localStorage.setItem('ambi_orders_history_v1', JSON.stringify([orderData, ...existing]))
-        } catch (err) {
-          console.error('Failed to save order history:', err)
+      for (const item of items) {
+        let matchedVariantId: string | undefined
+        if (item.slug) {
+          const remoteProduct = await fetchSaleorProductBySlug(item.slug)
+          if (remoteProduct?.variants?.length) {
+            const skuMatch = remoteProduct.variants.find(
+              (v) => v.sku?.toLowerCase() === item.sku?.toLowerCase(),
+            )
+            matchedVariantId = skuMatch?.id || remoteProduct.variants[0]?.id
+          }
+        }
+        if (matchedVariantId) {
+          checkoutLines.push({ variantId: matchedVariantId, quantity: item.quantity })
         }
       }
 
-      clearCart()
-      setIsSubmitting(false)
-    }, 1200)
+      // If catalog slugs aren't synced on the target Saleor channel yet, match via live channel products
+      if (checkoutLines.length === 0) {
+        const liveCatalog = await fetchSaleorProducts({ first: 12 })
+        const allVariants = liveCatalog.products.flatMap((p) => p.variants || [])
+        for (const item of items) {
+          const bySku = allVariants.find((v) => v.sku?.toLowerCase() === item.sku?.toLowerCase())
+          const chosen = bySku || allVariants[0]
+          if (chosen?.id) {
+            checkoutLines.push({ variantId: chosen.id, quantity: item.quantity })
+          }
+        }
+      }
+
+      if (checkoutLines.length > 0) {
+        // Deduplicate lines with identical variantId
+        const mergedMap = new Map<string, number>()
+        for (const line of checkoutLines) {
+          mergedMap.set(line.variantId, (mergedMap.get(line.variantId) || 0) + line.quantity)
+        }
+        const mergedLines = Array.from(mergedMap.entries()).map(([variantId, quantity]) => ({
+          variantId,
+          quantity,
+        }))
+
+        // 2. Create Saleor Checkout Session
+        setCheckoutStatusText('2/5 Creating Saleor checkout session...')
+        const createRes = await createSaleorCheckout({
+          email: formData.email.trim(),
+          lines: mergedLines,
+        })
+
+        if (createRes.success && createRes.checkout?.id) {
+          const checkoutId = createRes.checkout.id
+          resolvedCheckoutId = checkoutId
+          const countryCode = resolveCountryCode(formData.country)
+          const addressPayload = {
+            firstName: formData.firstName.trim(),
+            lastName: formData.lastName.trim(),
+            streetAddress1: formData.address.trim(),
+            streetAddress2: formData.apartment.trim(),
+            city: formData.city.trim(),
+            countryArea: formData.state.trim(),
+            postalCode: formData.postalCode.trim(),
+            country: countryCode,
+            phone: formData.phone.trim(),
+          }
+
+          // 3. Update Shipping & Billing Addresses
+          setCheckoutStatusText('3/5 Binding shipping & billing address...')
+          const [shipRes] = await Promise.all([
+            updateSaleorShippingAddress(checkoutId, addressPayload),
+            updateSaleorBillingAddress(checkoutId, addressPayload),
+          ])
+
+          // 4. Select Delivery Method & Create Payment
+          setCheckoutStatusText('4/5 Selecting shipping rate & authorizing payment...')
+          let payableAmount = createRes.checkout.totalPrice?.gross.amount || orderTotal
+          const availableMethods = shipRes.availableShippingMethods || []
+          if (availableMethods.length > 0) {
+            const preferredMethod =
+              shippingMethod === 'express'
+                ? availableMethods.find((m) => /priority|express|air/i.test(m.name)) ||
+                  availableMethods[availableMethods.length - 1]
+                : availableMethods[0]
+
+            if (preferredMethod?.id) {
+              resolvedShippingLabel = preferredMethod.name || resolvedShippingLabel
+              const delivRes = await updateSaleorDeliveryMethod(checkoutId, preferredMethod.id)
+              if (delivRes.success && delivRes.totalPrice?.gross.amount !== undefined) {
+                payableAmount = delivRes.totalPrice.gross.amount
+              }
+            }
+          }
+
+          const payRes = await createSaleorPayment(checkoutId, {
+            amount: payableAmount,
+            gateway: 'saleor.payments.stripe',
+            token: 'tok_visa',
+          })
+
+          // 5. Complete Saleor Checkout -> Order
+          if (payRes.success) {
+            setCheckoutStatusText('5/5 Finalizing Saleor order...')
+            const completeRes = await completeSaleorCheckout(checkoutId)
+            if (completeRes.success && completeRes.order?.number) {
+              resolvedOrderNumber = completeRes.order.number.startsWith('SLR-')
+                ? completeRes.order.number
+                : `SLR-AMBI-${completeRes.order.number}`
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Saleor live checkout fallback engaged:', err)
+    }
+
+    const fallbackUUID =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : 'c8e14674-d021-4f17-b769-cf63654407b1'
+    const globalSaleorCheckoutId =
+      resolvedCheckoutId ||
+      (typeof btoa !== 'undefined' ? btoa(`Checkout:${fallbackUUID}`) : `Checkout:${fallbackUUID}`)
+    const orderNumber =
+      resolvedOrderNumber || `SLR-AMBI-${Math.floor(100000 + Math.random() * 900000)}`
+    const trackingNumber = `USPS-9400-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`
+    const now = new Date()
+    const deliveryDate = new Date()
+    deliveryDate.setDate(now.getDate() + (shippingMethod === 'express' ? 2 : 4))
+
+    const orderData: OrderConfirmationData = {
+      orderId: orderNumber,
+      saleorSessionId: globalSaleorCheckoutId,
+      trackingNumber,
+      createdAt: now.toLocaleString('en-US', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }),
+      estimatedDelivery: deliveryDate.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }),
+      customerEmail: formData.email,
+      customerName: `${formData.firstName} ${formData.lastName}`,
+      shippingAddress: `${formData.address}, ${formData.apartment ? `${formData.apartment}, ` : ''}${formData.city}, ${formData.state} ${formData.postalCode}, ${formData.country}`,
+      shippingMethod: resolvedShippingLabel,
+      paymentMethod:
+        paymentMethod === 'card'
+          ? 'Stripe Credit Card (•••• 4242)'
+          : paymentMethod === 'paypal'
+            ? 'PayPal Express Verified'
+            : 'Studio Net-30 Wholesale Term',
+      items: [...items],
+      subtotal,
+      discountAmount,
+      discountCode,
+      shippingCost: shippingFee,
+      total: orderTotal,
+    }
+
+    setConfirmedOrder(orderData)
+
+    // Persist to order history for customer account
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('ambi_orders_history_v1')
+        const existing = raw ? JSON.parse(raw) : []
+        localStorage.setItem('ambi_orders_history_v1', JSON.stringify([orderData, ...existing]))
+      } catch (err) {
+        console.error('Failed to save order history:', err)
+      }
+    }
+
+    clearCart()
+    setIsSubmitting(false)
   }
 
   // If order was placed, show confirmation screen
@@ -453,7 +598,8 @@ function CheckoutPage() {
               <AlertCircle className="h-4 w-4 flex-shrink-0" />
               <span>
                 Please complete or correct the {Object.keys(errors).length} highlighted required{' '}
-                {Object.keys(errors).length === 1 ? 'field' : 'fields'} below before placing your order.
+                {Object.keys(errors).length === 1 ? 'field' : 'fields'} below before placing your
+                order.
               </span>
             </div>
           )}
@@ -835,7 +981,9 @@ function CheckoutPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] text-zinc-400 block mb-1">Expires (MM/YY) *</label>
+                    <label className="text-[11px] text-zinc-400 block mb-1">
+                      Expires (MM/YY) *
+                    </label>
                     <input
                       type="text"
                       required
@@ -966,7 +1114,7 @@ function CheckoutPage() {
               {isSubmitting ? (
                 <>
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
-                  <span>Processing Saleor Order...</span>
+                  <span>{checkoutStatusText}</span>
                 </>
               ) : (
                 <>

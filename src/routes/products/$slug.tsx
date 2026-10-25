@@ -27,16 +27,35 @@ import { useCart } from '~/lib/cart'
 import {
   type CatalogProduct,
   type ProductChildVariant,
-  getProductBySlug,
   getProductEffectivePrice,
 } from '~/lib/catalog'
+import { fetchProductBySlug } from '~/lib/catalog.functions'
 import { formatPrice, stripHtml } from '~/lib/utils'
 
 function findMatchingChild(
   product: CatalogProduct,
+  selectedOptions: Record<string, string>,
   selectedLabels: string[],
 ): ProductChildVariant | null {
   if (!product.children || product.children.length === 0) return null
+
+  // 1. Exact attribute match on child.attributes (option.code -> selected value index)
+  if (product.options.length > 0) {
+    const exactMatch = product.children.find((child) => {
+      const attrs = child.attributes
+      if (!attrs || Object.keys(attrs).length === 0) return false
+      return product.options.every((opt) => {
+        const chosenIndex = selectedOptions[opt.id]
+        if (!chosenIndex) return true
+        const attrKey = opt.code || opt.attribute_id
+        if (!attrKey || !(attrKey in attrs)) return false
+        return String(attrs[attrKey]) === String(chosenIndex)
+      })
+    })
+    if (exactMatch) return exactMatch
+  }
+
+  // 2. Fallback label/SKU scoring when child.attributes is incomplete
   let bestChild: ProductChildVariant = product.children[0]
   let maxScore = -1
 
@@ -83,8 +102,9 @@ function getColorHex(label: string): string | null {
 }
 
 export const Route = createFileRoute('/products/$slug')({
-  head: ({ params }) => {
-    const product = getProductBySlug(params.slug)
+  loader: ({ params }) => fetchProductBySlug({ data: { slug: params.slug } }),
+  head: ({ loaderData }) => {
+    const product = loaderData
     if (!product) {
       return {
         meta: [{ title: 'Product Not Found | AMBI Tattoo Supply' }],
@@ -162,8 +182,7 @@ export const Route = createFileRoute('/products/$slug')({
 })
 
 function ProductDetailPage() {
-  const { slug } = Route.useParams()
-  const product = getProductBySlug(slug)
+  const product = Route.useLoaderData()
 
   if (!product) {
     return (
@@ -191,9 +210,9 @@ function ProductDetailPage() {
     if (product.image) list.push(product.image)
     if (product.gallery && product.gallery.length > 0) list.push(...product.gallery)
     if (product.children && product.children.length > 0) {
-      product.children.forEach((c) => {
+      for (const c of product.children) {
         if (c.image) list.push(c.image)
-      })
+      }
     }
     const unique = Array.from(new Set(list.filter(Boolean)))
     return unique.length > 0 ? unique : product.image ? [product.image] : []
@@ -298,14 +317,14 @@ function ProductDetailPage() {
     .filter(Boolean)
 
   // Dynamically resolve matched child variant
-  const matchedChild = findMatchingChild(product, selectedLabels)
+  const matchedChild = findMatchingChild(product, selectedOptions, selectedLabels)
 
   // Auto-switch main image when option changes and a matching child variant image is present
   useEffect(() => {
     if (matchedChild?.image) {
       setActiveImage(matchedChild.image)
     }
-  }, [matchedChild?.id, matchedChild?.image])
+  }, [matchedChild?.image])
 
   const fallbackChildPrice =
     (product.children || product.variants || []).find((c) => c.price > 0)?.price || 0
@@ -443,6 +462,12 @@ function ProductDetailPage() {
             onMouseLeave={() => setIsHoverZoom(false)}
             onMouseMove={handleMouseMove}
             onClick={() => setIsLightboxOpen(true)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setIsLightboxOpen(true)
+              }
+            }}
             className="group relative aspect-square overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 p-6 flex items-center justify-center cursor-zoom-in select-none shadow-xl shadow-black/40"
           >
             {activeImage ? (
@@ -570,9 +595,7 @@ function ProductDetailPage() {
                 SKU: {currentSku}
               </span>
               <span className="text-zinc-600">•</span>
-              <span className="text-[11px] text-zinc-500 font-medium">
-                Default Warehouse
-              </span>
+              <span className="text-[11px] text-zinc-500 font-medium">Default Warehouse</span>
             </div>
 
             <h1 className="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl">
@@ -732,7 +755,8 @@ function ProductDetailPage() {
                   </span>
                 </h3>
                 <p className="text-xs text-zinc-400 mt-0.5">
-                  Saleor headless catalog metadata formatted for Google Merchant & Schema.org Product Rich Results.
+                  Saleor headless catalog metadata formatted for Google Merchant & Schema.org
+                  Product Rich Results.
                 </p>
               </div>
             </div>
@@ -744,7 +768,11 @@ function ProductDetailPage() {
             >
               <Code className="h-3.5 w-3.5 text-amber-400" />
               <span>{showSeoDebug ? 'Hide JSON-LD' : 'Inspect JSON-LD'}</span>
-              {showSeoDebug ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              {showSeoDebug ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
             </button>
           </div>
 
@@ -795,7 +823,9 @@ function ProductDetailPage() {
               <div>
                 <div className="text-[11px] font-semibold text-white">Pricing Model</div>
                 <div className="text-[10px] text-zinc-400 font-mono">
-                  {product.children && product.children.length > 1 ? 'AggregateOffer' : 'Single Offer'}
+                  {product.children && product.children.length > 1
+                    ? 'AggregateOffer'
+                    : 'Single Offer'}
                 </div>
               </div>
             </div>
@@ -810,7 +840,9 @@ function ProductDetailPage() {
               <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
               <div>
                 <div className="text-[11px] font-semibold text-white">Gallery Assets</div>
-                <div className="text-[10px] text-zinc-400 font-mono">{galleryImages.length} High-Res Images</div>
+                <div className="text-[10px] text-zinc-400 font-mono">
+                  {galleryImages.length} High-Res Images
+                </div>
               </div>
             </div>
           </div>
@@ -822,7 +854,9 @@ function ProductDetailPage() {
                 <span className="font-mono text-[11px] text-amber-400 flex items-center gap-1.5">
                   <Code className="h-3.5 w-3.5" /> application/ld+json (Live DOM Script)
                 </span>
-                <span className="text-[10px] text-zinc-500 font-mono">Google Search Console Ready</span>
+                <span className="text-[10px] text-zinc-500 font-mono">
+                  Google Search Console Ready
+                </span>
               </div>
               <pre className="max-h-72 overflow-y-auto text-[11px] font-mono leading-relaxed text-zinc-300 p-2 bg-zinc-900/60 rounded-lg">
                 {JSON.stringify(
@@ -844,10 +878,14 @@ function ProductDetailPage() {
                             '@type': 'AggregateOffer',
                             priceCurrency: 'USD',
                             lowPrice: Math.min(
-                              ...(product.children.map((c) => c.price).filter((p) => p > 0) || [currentPrice]),
+                              ...(product.children.map((c) => c.price).filter((p) => p > 0) || [
+                                currentPrice,
+                              ]),
                             ),
                             highPrice: Math.max(
-                              ...(product.children.map((c) => c.price).filter((p) => p > 0) || [currentPrice]),
+                              ...(product.children.map((c) => c.price).filter((p) => p > 0) || [
+                                currentPrice,
+                              ]),
                             ),
                             offerCount: product.children.length,
                             availability: 'https://schema.org/InStock',
@@ -874,10 +912,10 @@ function ProductDetailPage() {
 
       {/* Fullscreen Lightbox Modal */}
       {isLightboxOpen && activeImage && (
-        <div
-          role="dialog"
+        <dialog
+          open
           aria-modal="true"
-          className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-xl animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 m-0 flex h-full w-full max-h-none max-w-none flex-col border-0 bg-black/95 p-0 text-white backdrop-blur-xl animate-in fade-in duration-200"
         >
           {/* Header Controls */}
           <div className="flex items-center justify-between border-b border-zinc-800/80 px-4 sm:px-6 py-3 sm:py-4">
@@ -1006,7 +1044,7 @@ function ProductDetailPage() {
               </div>
             </div>
           )}
-        </div>
+        </dialog>
       )}
     </div>
   )

@@ -19,29 +19,24 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { ProductCard } from '~/components/ProductCard'
-import {
-  getCategoryBySlug,
-  getProductEffectivePrice,
-  getProductsByCategory,
-  getTopCategories,
-} from '~/lib/catalog'
-import { formatPrice } from '~/lib/utils'
+import { getProductEffectivePrice } from '~/lib/catalog'
+import { fetchCategoryPageData } from '~/lib/catalog.functions'
 
 export const Route = createFileRoute('/categories/$slug')({
-  head: ({ params }) => {
-    const category = getCategoryBySlug(params.slug)
+  loader: ({ params }) => fetchCategoryPageData({ data: { slug: params.slug } }),
+  head: ({ params, loaderData }) => {
+    const category = loaderData?.category
     const categoryName =
       category?.name || params.slug.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
-    const baseData = getProductsByCategory(params.slug, { sortBy: 'featured' })
-    const totalCount = baseData.total
+    const products = loaderData?.products || []
+    const totalCount = loaderData?.total || 0
     const categoryUrl = `https://www.ambitiontattoosupply.com/categories/${params.slug}`
     const title = `${categoryName} | Ambition Tattoo Supply Official Store`
     const description = `Shop ${totalCount}+ professional ${categoryName.toLowerCase()} at Ambition Tattoo Supply. Premium wireless machines, cartridges, and studio hardware with fast global dispatch.`
-    const previewImage =
-      baseData.products[0]?.image || 'https://www.ambitiontattoosupply.com/logo.png'
+    const previewImage = products[0]?.image || 'https://www.ambitiontattoosupply.com/logo.png'
 
     // Top products for ItemList schema
-    const topItems = baseData.products.slice(0, 10).map((prod, idx) => {
+    const topItems = products.slice(0, 10).map((prod, idx) => {
       const effPrice = getProductEffectivePrice(prod)
       return {
         '@type': 'ListItem',
@@ -84,12 +79,6 @@ export const Route = createFileRoute('/categories/$slug')({
         {
           '@type': 'ListItem',
           position: 2,
-          name: 'Categories',
-          item: 'https://www.ambitiontattoosupply.com/categories',
-        },
-        {
-          '@type': 'ListItem',
-          position: 3,
           name: categoryName,
           item: categoryUrl,
         },
@@ -154,11 +143,9 @@ function CategoryPage() {
   const [showSeoDebug, setShowSeoDebug] = useState(false)
   const [seoTab, setSeoTab] = useState<'collection' | 'breadcrumb'>('collection')
 
-  // Load category and all base catalog products for this category
-  const category = getCategoryBySlug(slug)
-  const baseData = useMemo(() => {
-    return getProductsByCategory(slug, { sortBy: 'featured' })
-  }, [slug])
+  // Load category and all base catalog products for this category from SSR/loader
+  const baseData = Route.useLoaderData()
+  const category = baseData.category
 
   const categoryName =
     category?.name || slug.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
@@ -367,7 +354,9 @@ function CategoryPage() {
                     }`}
                   >
                     <span>{bracket.label}</span>
-                    {priceBracket === bracket.id && <Check className="h-3.5 w-3.5 text-amber-400" />}
+                    {priceBracket === bracket.id && (
+                      <Check className="h-3.5 w-3.5 text-amber-400" />
+                    )}
                   </button>
                 ))}
               </div>
@@ -650,7 +639,8 @@ function CategoryPage() {
                       </span>
                     </h3>
                     <p className="text-xs text-zinc-400 mt-0.5">
-                      Saleor collection metadata with Schema.org CollectionPage, ItemList, and BreadcrumbList for Google Rich Snippets.
+                      Saleor collection metadata with Schema.org CollectionPage, ItemList, and
+                      BreadcrumbList for Google Rich Snippets.
                     </p>
                   </div>
                 </div>
@@ -662,7 +652,11 @@ function CategoryPage() {
                 >
                   <Code className="h-3.5 w-3.5 text-amber-400" />
                   <span>{showSeoDebug ? 'Hide JSON-LD' : 'Inspect JSON-LD'}</span>
-                  {showSeoDebug ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  {showSeoDebug ? (
+                    <ChevronUp className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  )}
                 </button>
               </div>
 
@@ -690,7 +684,9 @@ function CategoryPage() {
                     <span className="text-zinc-400">Verified Studio Hardware</span>
                   </div>
                   <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed pt-1">
-                    Shop {baseData.total}+ professional {categoryName.toLowerCase()} at Ambition Tattoo Supply. Premium wireless machines, cartridges, and studio hardware with fast global dispatch.
+                    Shop {baseData.total}+ professional {categoryName.toLowerCase()} at Ambition
+                    Tattoo Supply. Premium wireless machines, cartridges, and studio hardware with
+                    fast global dispatch.
                   </p>
                 </div>
               </div>
@@ -717,7 +713,9 @@ function CategoryPage() {
                   <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
                   <div>
                     <div className="text-[11px] font-semibold text-white">BreadcrumbList</div>
-                    <div className="text-[10px] text-zinc-400">Home &gt; Cat &gt; {categoryName}</div>
+                    <div className="text-[10px] text-zinc-400">
+                      Home &gt; Cat &gt; {categoryName}
+                    </div>
                   </div>
                 </div>
 
@@ -803,12 +801,6 @@ function CategoryPage() {
                               {
                                 '@type': 'ListItem',
                                 position: 2,
-                                name: 'Categories',
-                                item: 'https://www.ambitiontattoosupply.com/categories',
-                              },
-                              {
-                                '@type': 'ListItem',
-                                position: 3,
                                 name: categoryName,
                                 item: `https://www.ambitiontattoosupply.com/categories/${slug}`,
                               },

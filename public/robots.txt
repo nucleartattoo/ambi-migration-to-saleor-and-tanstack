@@ -1,0 +1,23 @@
+# ==============================================================================
+# Ambition Tattoo Supply (Ambi) - Official Store Search Engine Robots Policy
+# Headless Saleor 3.23 + TanStack Start Storefront
+# ==============================================================================
+
+User-agent: *
+Allow: /
+Allow: /categories/
+Allow: /products/
+
+# Disallow private user portals, active carts, and checkout pipelines
+Disallow: /cart
+Disallow: /checkout
+Disallow: /account
+Disallow: /saleor
+Disallow: /api/
+Disallow: /healthz
+
+# Crawl-delay for polite indexing
+Crawl-delay: 1
+
+# Official Google Sitemap
+Sitemap: https://www.ambitiontattoosupply.com/sitemap.xml

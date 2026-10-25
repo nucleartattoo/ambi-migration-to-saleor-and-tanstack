@@ -82,23 +82,22 @@ const INITIAL_STUDIO_ORDERS: SavedOrder[] = [
     status: 'Delivered',
     items: [
       {
-        id: '646__Color:Black|Stroke:4.2mm',
-        name: 'Ambition Soldier Max Wireless Battery Tattoo Pen',
-        image:
-          'https://www.ambitiontattoosupply.com/media/catalog/product/s/o/soldier_max_black_1.jpg',
+        id: '1437__Color:Black|Stroke:4.2mm',
+        name: 'Ambition Soldier Max Wireless Tattoo Machine Pen',
+        image: 'https://www.ambitiontattoosupply.com/media/catalog/product/2/0/2023120618-02.jpg',
         quantity: 1,
         price: 149.99,
         options: [
           { label: 'Color', value: 'Matte Black' },
           { label: 'Stroke', value: '4.2mm Direct Drive' },
         ],
-        slug: 'ambition-soldier-max-tattoo-machine',
+        slug: 'ambition-soldier-max-wireless-tattoo-machine-pen',
       },
       {
-        id: 'needles__0801RL',
-        name: 'Ambition Revolution Cartridge Needles (Box of 20)',
+        id: '660__0801RL',
+        name: 'Ambition Premium Tattoo Cartridge Needles (Box of 20)',
         image:
-          'https://www.ambitiontattoosupply.com/media/catalog/product/r/e/revolution_cartridge_box.jpg',
+          'https://www.ambitiontattoosupply.com/media/catalog/product/5/1/51wye04ziql._sl1000_.jpg',
         quantity: 2,
         price: 13.0,
         options: [
@@ -159,17 +158,20 @@ function AccountPage() {
   }
 
   const handleReorder = (order: SavedOrder) => {
-    order.items.forEach((item) => {
-      cartStore.addItem({
-        productId: item.id.split('__')[0] || item.id,
-        name: item.name,
-        price: item.price,
-        image: item.image,
-        sku: item.id,
-        slug: item.slug || 'ambition-storm-wand-wireless-tattoo-machine-pen',
-        options: item.options || [],
-      }, item.quantity)
-    })
+    for (const item of order.items) {
+      cartStore.addItem(
+        {
+          productId: item.id.split('__')[0] || item.id,
+          name: item.name,
+          price: item.price,
+          image: item.image,
+          sku: item.id,
+          slug: item.slug || 'ambition-storm-wand-wireless-tattoo-machine-pen',
+          options: item.options || [],
+        },
+        item.quantity,
+      )
+    }
     router.navigate({ to: '/cart' })
   }
 
@@ -189,7 +191,8 @@ function AccountPage() {
             Customer Account & Studio Portal
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Manage your AMBI studio orders, delivery logistics, addresses, and wholesale credentials.
+            Manage your AMBI studio orders, delivery logistics, addresses, and wholesale
+            credentials.
           </p>
         </div>
 
@@ -202,7 +205,9 @@ function AccountPage() {
             <span className="text-[10px] uppercase font-bold text-amber-400 block tracking-wider">
               Wholesale Partner
             </span>
-            <span className="text-xs font-semibold text-white">Tier 2 Studio Discount (20% Off)</span>
+            <span className="text-xs font-semibold text-white">
+              Tier 2 Studio Discount (20% Off)
+            </span>
           </div>
         </div>
       </div>
@@ -278,7 +283,8 @@ function AccountPage() {
                   <Package className="mx-auto h-8 w-8 text-zinc-600" />
                   <h4 className="text-sm font-semibold text-white">No active orders found</h4>
                   <p className="text-xs text-zinc-500">
-                    When you complete purchases, full tracking details and receipts will appear here.
+                    When you complete purchases, full tracking details and receipts will appear
+                    here.
                   </p>
                   <Link
                     to="/categories/$slug"
@@ -404,6 +410,16 @@ function AccountPage() {
 
                             <button
                               type="button"
+                              onClick={() =>
+                                setSelectedOrderDetails(isExpanded ? null : order.orderId)
+                              }
+                              className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition"
+                            >
+                              {isExpanded ? 'Hide Details' : 'Order Details'}
+                            </button>
+
+                            <button
+                              type="button"
                               onClick={() => setTrackingModalOrder(order)}
                               className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-700 hover:text-white transition"
                             >
@@ -473,17 +489,13 @@ function AccountPage() {
                     <input
                       type="text"
                       value={profileData.fullName}
-                      onChange={(e) =>
-                        setProfileData({ ...profileData, fullName: e.target.value })
-                      }
+                      onChange={(e) => setProfileData({ ...profileData, fullName: e.target.value })}
                       className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3.5 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs text-zinc-400 block mb-1">
-                      Primary Studio Email
-                    </label>
+                    <label className="text-xs text-zinc-400 block mb-1">Primary Studio Email</label>
                     <input
                       type="email"
                       value={profileData.email}
@@ -608,7 +620,9 @@ function AccountPage() {
                   <div className="space-y-1 pt-1">
                     <h4 className="text-sm font-bold text-white">Golden State Tattoo Expo</h4>
                     <p className="text-xs text-zinc-300">Booth #402 - Marcus Vance</p>
-                    <p className="text-xs text-zinc-400">300 E Green St (Pasadena Convention Center)</p>
+                    <p className="text-xs text-zinc-400">
+                      300 E Green St (Pasadena Convention Center)
+                    </p>
                     <p className="text-xs text-zinc-400">Pasadena, CA 91101, United States</p>
                     <p className="text-[11px] font-mono text-zinc-500 pt-1">
                       Phone: +1 (555) 019-2834
@@ -682,7 +696,9 @@ function AccountPage() {
                   <p className="text-[11px] text-zinc-400">
                     Packed & Dispatched with 256-bit Saleor Order Verification
                   </p>
-                  <span className="text-[10px] text-zinc-500 font-mono">Yesterday, 04:15 PM PST</span>
+                  <span className="text-[10px] text-zinc-500 font-mono">
+                    Yesterday, 04:15 PM PST
+                  </span>
                 </div>
               </div>
             </div>

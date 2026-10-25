@@ -12,8 +12,23 @@ from saleor_client import SaleorClient
 from state_manager import StateManager
 
 def slugify(text):
-    text = re.sub(r'[^\w\s-]', '', str(text).lower()).strip()
-    return re.sub(r'[-\s]+', '-', text)
+    text = str(text).lower()
+    text = re.sub(r"[^a-z0-9]+", "-", text)
+    return text.strip("-")
+
+
+FALLBACK_ATTR_CODE_MAP = {
+    "colors": "color",
+    "machine_size": "stroke",
+    "bearing_size": "stroke",
+    "cartridge_needle_size": "needle_size",
+    "needle_type": "needle_size",
+    "grip_size": "grip_diameter",
+    "clip_cord_type": "connector_type",
+    "cable_model": "connector_type",
+    "power_supply_type": "battery_capacity",
+}
+
 
 def migrate_products(limit=None, dry_run=False):
     print("==================================================")
@@ -21,19 +36,56 @@ def migrate_products(limit=None, dry_run=False):
     print("==================================================")
 
     prod_file = os.path.join("artifacts", "extracted", "products.json")
+    attr_file = os.path.join("artifacts", "extracted", "attributes.json")
     if not os.path.exists(prod_file):
         raise FileNotFoundError(f"Products file not found at {prod_file}. Run stage1_extract_catalog.py first!")
 
     with open(prod_file, "r", encoding="utf-8") as f:
-        products = json.load(f)
+        all_products = json.load(f)
+
+    attr_opts = {}
+    attr_codes = {}
+    if os.path.exists(attr_file):
+        with open(attr_file, "r", encoding="utf-8") as f:
+            attrs_raw = json.load(f)
+        for a in attrs_raw.get("attributes", []):
+            aid = str(a.get("attribute_id"))
+            acode = a.get("attribute_code")
+            if aid and acode:
+                attr_codes[aid] = acode
+            for opt in a.get("options", []):
+                if opt.get("value"):
+                    attr_opts[(aid, str(opt.get("value")))] = str(opt.get("label")).strip()
+
+    # Pre-calculate canonical storefront slugs across all products so they match catalog.json 100%
+    slug_seen = {}
+    canonical_slugs = {}
+    for p in all_products:
+        pid = p.get("id")
+        p_sku = p.get("sku", "")
+        p_name = p.get("name", "")
+        c_attrs = {
+            a.get("attribute_code"): a.get("value")
+            for a in p.get("custom_attributes", [])
+            if "attribute_code" in a
+        }
+        url_key = c_attrs.get("url_key")
+        if not url_key:
+            url_key = slugify(p_name) or slugify(p_sku)
+        if url_key in slug_seen:
+            slug_seen[url_key] += 1
+            final_slug = f"{url_key}-{p_sku.lower()}"
+        else:
+            slug_seen[url_key] = 1
+            final_slug = url_key
+        canonical_slugs[pid] = final_slug[:200]
 
     config = load_saleor_config()
     client = SaleorClient(config, dry_run=dry_run)
     state = StateManager(dry_run=dry_run)
 
-    total_available = len(products)
-    if limit:
-        products = products[:limit]
+    total_available = len(all_products)
+    products = all_products[:limit] if limit else all_products
     print(f"Processing {len(products)} products (out of {total_available} total, limit={limit})...\n")
 
     # Resolve global Channel ID
@@ -48,12 +100,23 @@ def migrate_products(limit=None, dry_run=False):
 
     # Map of child simple product IDs that belong to configurable products
     child_product_ids = set()
-    for p in products:
+    for p in all_products:
         if p.get("type_id") == "configurable":
             for child in p.get("_configurable_children", []):
                 child_product_ids.add(child.get("id"))
 
     print(f"Detected {len(child_product_ids)} child simple products belonging to configurables (will be migrated as variants).\n")
+
+    def resolve_saleor_attr_id(attr_code):
+        if not attr_code:
+            return None
+        s_attr = state.get_attribute(attr_code)
+        if s_attr:
+            return s_attr
+        fallback_code = FALLBACK_ATTR_CODE_MAP.get(attr_code)
+        if fallback_code:
+            return state.get_attribute(fallback_code)
+        return state.get_attribute("color")
 
     success_count = 0
     skipped_count = 0
@@ -103,9 +166,9 @@ def migrate_products(limit=None, dry_run=False):
                 if description:
                     break
 
-        slug = f"ambi-{slugify(name)}-{p_id}"[:200]
+        slug = canonical_slugs.get(p_id) or f"ambi-{slugify(name)}-{p_id}"[:200]
 
-        print(f"[{idx}/{len(products)}] Migrating [{type_id.upper()}] SKU: {sku} - {name[:30]}...", end="")
+        print(f"[{idx}/{len(products)}] Migrating [{type_id.upper()}] SKU: {sku} (slug: {slug})...", end="")
 
         try:
             # 1. Create Product
@@ -124,17 +187,40 @@ def migrate_products(limit=None, dry_run=False):
 
             # 3. Handle Variants
             warehouse_id = config.get("warehouse_id")
-            if type_id == "configurable":
-                children = p.get("_configurable_children", [])
+            children = p.get("_configurable_children", []) if type_id == "configurable" else []
+            if type_id == "configurable" and children:
+                conf_options = p.get("extension_attributes", {}).get("configurable_product_options", [])
                 variants_input = []
                 for child in children:
                     c_sku = child.get("sku")
                     c_name = child.get("name", c_sku)
                     c_price = float(child.get("price") or price)
+                    child_custom_attrs = {
+                        a.get("attribute_code"): a.get("value")
+                        for a in child.get("custom_attributes", [])
+                        if "attribute_code" in a
+                    }
+
+                    variant_attrs = []
+                    used_saleor_attr_ids = set()
+                    for opt in conf_options:
+                        aid = str(opt.get("attribute_id"))
+                        acode = attr_codes.get(aid)
+                        s_attr_id = resolve_saleor_attr_id(acode)
+                        raw_val = child_custom_attrs.get(acode) if acode else None
+                        if s_attr_id and raw_val is not None and s_attr_id not in used_saleor_attr_ids:
+                            opt_label = attr_opts.get((aid, str(raw_val)), str(raw_val))
+                            if opt_label:
+                                variant_attrs.append({
+                                    "id": s_attr_id,
+                                    "values": [opt_label]
+                                })
+                                used_saleor_attr_ids.add(s_attr_id)
+
                     v_item = {
                         "sku": c_sku,
                         "name": c_name,
-                        "attributes": [],
+                        "attributes": variant_attrs,
                         "channelListings": [{
                             "channelId": channel_id,
                             "price": c_price
@@ -147,7 +233,16 @@ def migrate_products(limit=None, dry_run=False):
                         }]
                     variants_input.append(v_item)
                 if variants_input:
-                    client.create_variant_bulk(s_prod_id, variants_input)
+                    created_variants = client.create_variant_bulk(s_prod_id, variants_input)
+                    created_by_sku = {
+                        v.get("sku"): v.get("id")
+                        for v in (created_variants or [])
+                        if v.get("sku") and v.get("id")
+                    }
+                    for v_item in variants_input:
+                        v_sku = v_item["sku"]
+                        v_id = created_by_sku.get(v_sku) or f"mock-var-{v_sku}"
+                        state.set_variant(v_sku, v_id)
             else:
                 simple_v = {
                     "sku": sku,
@@ -163,7 +258,13 @@ def migrate_products(limit=None, dry_run=False):
                         "warehouse": warehouse_id,
                         "quantity": 100
                     }]
-                client.create_variant_bulk(s_prod_id, [simple_v])
+                created_variants = client.create_variant_bulk(s_prod_id, [simple_v])
+                v_id = (
+                    created_variants[0].get("id")
+                    if created_variants and created_variants[0].get("id")
+                    else f"mock-var-{sku}"
+                )
+                state.set_variant(sku, v_id)
 
             # 4. Handle Media Images (Ambi Media CDN)
             media_entries = p.get("media_gallery_entries", [])

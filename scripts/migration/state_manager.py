@@ -2,25 +2,46 @@ import os
 import json
 
 class StateManager:
+    _dry_run_shared_state = None
+
     def __init__(self, state_file="artifacts/migration_state.json", dry_run=False):
         self.state_file = state_file
         self.dry_run = dry_run
-        self.state = {
-            "categories": {},
-            "product_types": {},
-            "attributes": {},
-            "attribute_values": {},
-            "products": {},
-            "variants": {},
-            "customers": {},
-            "stats": {
-                "categories_migrated": 0,
-                "products_migrated": 0,
-                "variants_migrated": 0,
-                "customers_migrated": 0,
+        if dry_run:
+            if StateManager._dry_run_shared_state is None:
+                StateManager._dry_run_shared_state = {
+                    "categories": {},
+                    "product_types": {},
+                    "attributes": {},
+                    "attribute_values": {},
+                    "products": {},
+                    "variants": {},
+                    "customers": {},
+                    "stats": {
+                        "categories_migrated": 0,
+                        "products_migrated": 0,
+                        "variants_migrated": 0,
+                        "customers_migrated": 0,
+                    },
+                }
+            self.state = StateManager._dry_run_shared_state
+        else:
+            self.state = {
+                "categories": {},
+                "product_types": {},
+                "attributes": {},
+                "attribute_values": {},
+                "products": {},
+                "variants": {},
+                "customers": {},
+                "stats": {
+                    "categories_migrated": 0,
+                    "products_migrated": 0,
+                    "variants_migrated": 0,
+                    "customers_migrated": 0,
+                },
             }
-        }
-        self.load()
+            self.load()
 
     def load(self):
         if not self.dry_run and os.path.exists(self.state_file):
