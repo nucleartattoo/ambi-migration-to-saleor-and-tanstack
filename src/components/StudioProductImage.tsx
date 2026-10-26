@@ -16,27 +16,27 @@ type HardwareArchetype = 'machine' | 'needle' | 'battery' | 'kit' | 'grip'
 
 function detectArchetype(text: string): HardwareArchetype {
   const lower = text.toLowerCase()
-  if (
-    lower.includes('needle') ||
-    lower.includes('cartridge') ||
-    lower.includes('rl') ||
-    lower.includes('rs')
-  ) {
-    return 'needle'
-  }
-  if (
-    lower.includes('battery') ||
-    lower.includes('power') ||
-    lower.includes('rca') ||
-    lower.includes('cord')
-  ) {
-    return 'battery'
-  }
   if (lower.includes('kit') || lower.includes('set') || lower.includes('complete')) {
     return 'kit'
   }
   if (lower.includes('grip') || lower.includes('tip') || lower.includes('tube')) {
     return 'grip'
+  }
+  const isMachine = lower.includes('machine') || lower.includes('rotary') || lower.includes('pen')
+  if (
+    !isMachine &&
+    (lower.includes('needle') || lower.includes('cartridge') || /\b\d+(rl|rs|rm|m1)\b/i.test(lower))
+  ) {
+    return 'needle'
+  }
+  if (
+    !isMachine &&
+    (lower.includes('battery') ||
+      lower.includes('power') ||
+      lower.includes('rca') ||
+      lower.includes('cord'))
+  ) {
+    return 'battery'
   }
   return 'machine'
 }

@@ -4,6 +4,7 @@ import {
   type CatalogProduct,
   TOP_CATEGORY_IDS,
   getProductEffectivePrice,
+  rankAndFilterProductsByQuery,
 } from './catalog'
 
 const rawCategories: Record<string, CatalogCategory> = (catalogData.categories ||
@@ -17,17 +18,34 @@ const allProducts: CatalogProduct[] = rawProducts.map((p) => ({
   variants: p.variants || p.children || [],
 }))
 
+function computeCategoryProductCount(categoryId: string): number {
+  const desc = categoryDescendants[categoryId] || [categoryId]
+  const cidSet = new Set(desc)
+  return allProducts.filter(
+    (p) => p.is_visible_individually && p.category_ids.some((cid) => cidSet.has(cid)),
+  ).length
+}
+
+function hydrateSubcategories(parentCat: CatalogCategory): CatalogCategory[] {
+  return (parentCat.children_ids || [])
+    .map((childId) => rawCategories[childId])
+    .filter((sub): sub is CatalogCategory => Boolean(sub?.is_active))
+    .map((sub) => ({
+      ...sub,
+      product_count: computeCategoryProductCount(sub.id) || sub.product_count,
+    }))
+    .filter((sub) => sub.product_count > 0)
+}
+
 export function getTopCategoriesServer(): CatalogCategory[] {
   const result: CatalogCategory[] = []
   for (const id of TOP_CATEGORY_IDS) {
     const cat = rawCategories[id]
     if (!cat) continue
-    const subcategories = (cat.children_ids || [])
-      .map((childId) => rawCategories[childId])
-      .filter((sub): sub is CatalogCategory => Boolean(sub?.is_active && sub.product_count > 0))
     result.push({
       ...cat,
-      subcategories,
+      product_count: computeCategoryProductCount(cat.id) || cat.product_count,
+      subcategories: hydrateSubcategories(cat),
     })
   }
   return result
@@ -39,13 +57,33 @@ export function getCategoryBySlugServer(slug: string): CatalogCategory | undefin
   )
   if (!match) return undefined
 
-  const subcategories = (match.children_ids || [])
-    .map((cid) => rawCategories[cid])
-    .filter((sub): sub is CatalogCategory => Boolean(sub?.is_active && sub.product_count > 0))
+  const ownSubcategories = hydrateSubcategories(match)
+  const parentRaw =
+    match.parent_id && match.parent_id !== '2' ? rawCategories[match.parent_id] : undefined
+
+  const parentCategory = parentRaw
+    ? {
+        id: parentRaw.id,
+        name: parentRaw.name,
+        slug: parentRaw.slug,
+        product_count: computeCategoryProductCount(parentRaw.id) || parentRaw.product_count,
+      }
+    : undefined
+
+  // If viewing a leaf subcategory (e.g. Wireless Tattoo Machines under Tattoo Machines),
+  // expose the parent's sibling subcategories so the pill switcher bar remains available
+  const subcategories =
+    ownSubcategories.length > 0
+      ? ownSubcategories
+      : parentRaw
+        ? hydrateSubcategories(parentRaw)
+        : []
 
   return {
     ...match,
+    product_count: computeCategoryProductCount(match.id) || match.product_count,
     subcategories,
+    parentCategory,
   }
 }
 
@@ -148,16 +186,6 @@ export function getFeaturedProductsServer(limit = 8, categorySlug?: string): Cat
 
 export function searchProductsServer(query: string, limit = 20): CatalogProduct[] {
   if (!query || query.trim() === '') return []
-  const q = query.toLowerCase().trim()
-
-  return allProducts
-    .filter((p) => {
-      if (!p.is_visible_individually) return false
-      return (
-        p.name.toLowerCase().includes(q) ||
-        p.sku.toLowerCase().includes(q) ||
-        p.short_description.toLowerCase().includes(q)
-      )
-    })
-    .slice(0, limit)
+  const visible = allProducts.filter((p) => p.is_visible_individually)
+  return rankAndFilterProductsByQuery(visible, query).slice(0, limit)
 }

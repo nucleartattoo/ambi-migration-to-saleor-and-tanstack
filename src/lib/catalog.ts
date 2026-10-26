@@ -7,6 +7,12 @@ export interface CatalogCategory {
   is_active: boolean
   children_ids: string[]
   subcategories?: CatalogCategory[]
+  parentCategory?: {
+    id: string
+    name: string
+    slug: string
+    product_count: number
+  }
 }
 
 export interface ProductOptionValue {
@@ -61,7 +67,7 @@ const TOP_CATEGORIES_STATIC: CatalogCategory[] = [
     name: 'Tattoo Machines',
     slug: 'tattoo-machines',
     parent_id: '2',
-    product_count: 43,
+    product_count: 52,
     is_active: true,
     children_ids: ['133', '134'],
     subcategories: [
@@ -70,7 +76,7 @@ const TOP_CATEGORIES_STATIC: CatalogCategory[] = [
         name: 'Wireless Tattoo Machines',
         slug: 'wireless-tattoo-machines',
         parent_id: '51',
-        product_count: 36,
+        product_count: 43,
         is_active: true,
         children_ids: [],
       },
@@ -100,7 +106,7 @@ const TOP_CATEGORIES_STATIC: CatalogCategory[] = [
     name: 'Tattoo Power Supplies',
     slug: 'tattoo-power-supplies',
     parent_id: '2',
-    product_count: 21,
+    product_count: 26,
     is_active: true,
     children_ids: ['136', '78'],
     subcategories: [
@@ -109,7 +115,7 @@ const TOP_CATEGORIES_STATIC: CatalogCategory[] = [
         name: 'Wireless Tattoo Battery',
         slug: 'wireless-tattoo-battery',
         parent_id: '55',
-        product_count: 14,
+        product_count: 22,
         is_active: true,
         children_ids: ['132', '77'],
       },
@@ -129,7 +135,7 @@ const TOP_CATEGORIES_STATIC: CatalogCategory[] = [
     name: 'Tattoo Kits',
     slug: 'tattoo-kits',
     parent_id: '2',
-    product_count: 15,
+    product_count: 16,
     is_active: true,
     children_ids: [],
     subcategories: [],
@@ -168,7 +174,7 @@ const TOP_CATEGORIES_STATIC: CatalogCategory[] = [
     name: 'Wireless Tattoo Battery',
     slug: 'wireless-tattoo-battery',
     parent_id: '55',
-    product_count: 14,
+    product_count: 22,
     is_active: true,
     children_ids: ['132', '77'],
     subcategories: [],
@@ -178,7 +184,7 @@ const TOP_CATEGORIES_STATIC: CatalogCategory[] = [
     name: 'Tattoo Accessories',
     slug: 'tattoo-accessories',
     parent_id: '2',
-    product_count: 9,
+    product_count: 11,
     is_active: true,
     children_ids: [],
     subcategories: [],
@@ -198,4 +204,79 @@ export function getProductEffectivePrice(p: CatalogProduct): number {
     .map((c) => c.price)
     .filter((pr) => pr && pr > 0)
   return childPrices.length > 0 ? Math.min(...childPrices) : 0
+}
+
+function stemSearchToken(token: string): string {
+  return token
+    .replace(/batteries$/i, 'battery')
+    .replace(/supplies$/i, 'supply')
+    .replace(/accessories$/i, 'accessory')
+    .replace(/cartridges$/i, 'cartridge')
+    .replace(/needles$/i, 'needle')
+    .replace(/machines$/i, 'machine')
+    .replace(/grips$/i, 'grip')
+    .replace(/kits$/i, 'kit')
+    .replace(/pens$/i, 'pen')
+}
+
+/**
+ * Relevance-ranked product search that prioritizes SKU and product title matches
+ * (with singular/plural stemming) before falling back to short_description matches.
+ */
+export function rankAndFilterProductsByQuery(
+  products: CatalogProduct[],
+  query: string,
+): CatalogProduct[] {
+  const q = query.toLowerCase().trim()
+  if (!q) return products
+
+  const rawTokens = q.split(/\s+/).filter(Boolean)
+  const stemmedTokens = rawTokens.map(stemSearchToken)
+
+  const primaryMatches: { product: CatalogProduct; score: number }[] = []
+  const descriptionFallbacks: { product: CatalogProduct; score: number }[] = []
+
+  for (const p of products) {
+    const nameLower = p.name.toLowerCase()
+    const skuLower = p.sku.toLowerCase()
+    const nameAndSku = `${nameLower} ${skuLower}`
+    const descLower = (p.short_description || '').toLowerCase()
+
+    let primaryScore = 0
+    if (skuLower === q) {
+      primaryScore += 200
+    } else if (skuLower.startsWith(q)) {
+      primaryScore += 140
+    } else if (skuLower.includes(q)) {
+      primaryScore += 100
+    }
+
+    if (nameLower.includes(q)) {
+      primaryScore += 110
+    } else if (stemmedTokens.every((t) => nameAndSku.includes(t))) {
+      primaryScore += 85
+    }
+
+    if (primaryScore > 0) {
+      const qualityBonus =
+        (p.image ? 12 : 0) +
+        (p.options && p.options.length > 0 ? 8 : 0) +
+        (getProductEffectivePrice(p) > 0 ? 4 : 0)
+      primaryMatches.push({ product: p, score: primaryScore + qualityBonus })
+      continue
+    }
+
+    if (descLower.includes(q) || stemmedTokens.every((t) => descLower.includes(t))) {
+      const qualityBonus = (p.image ? 6 : 0) + (p.options && p.options.length > 0 ? 4 : 0)
+      descriptionFallbacks.push({ product: p, score: 15 + qualityBonus })
+    }
+  }
+
+  if (primaryMatches.length > 0) {
+    primaryMatches.sort((a, b) => b.score - a.score)
+    return primaryMatches.map((m) => m.product)
+  }
+
+  descriptionFallbacks.sort((a, b) => b.score - a.score)
+  return descriptionFallbacks.map((m) => m.product)
 }

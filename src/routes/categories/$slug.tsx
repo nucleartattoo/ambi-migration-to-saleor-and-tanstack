@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { ProductCard } from '~/components/ProductCard'
-import { getProductEffectivePrice } from '~/lib/catalog'
+import { getProductEffectivePrice, rankAndFilterProductsByQuery } from '~/lib/catalog'
 import { fetchCategoryPageData } from '~/lib/catalog.functions'
 
 export const Route = createFileRoute('/categories/$slug')({
@@ -128,13 +128,22 @@ const PRICE_BRACKETS: { id: PriceRangeOption; label: string; min?: number; max?:
   { id: '250-plus', label: '$250 & Above', min: 250 },
 ]
 
+const SPEC_FORMATS: { id: TypeOption; label: string }[] = [
+  { id: 'all', label: 'All Spec Formats' },
+  { id: 'configurable', label: 'Multi-Spec / Configurable' },
+  { id: 'single', label: 'Single Standard SKU' },
+]
+
 function CategoryPage() {
   const { slug } = Route.useParams()
+  return <CategoryPageContent key={slug} slug={slug} />
+}
 
+function CategoryPageContent({ slug }: { slug: string }) {
   // Primary Sort State
   const [sortBy, setSortBy] = useState<SortOption>('featured')
 
-  // Facet Filters State
+  // Facet Filters State (automatically reset when route slug changes via key={slug})
   const [priceBracket, setPriceBracket] = useState<PriceRangeOption>('all')
   const [productType, setProductType] = useState<TypeOption>('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -149,20 +158,19 @@ function CategoryPage() {
 
   const categoryName =
     category?.name || slug.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+  const parentCat = category?.parentCategory
+  const rootCategorySlug = parentCat ? parentCat.slug : category?.slug || slug
+  const rootCategoryName = parentCat ? parentCat.name : categoryName
+  const rootCategoryTotal = parentCat ? parentCat.product_count : baseData.total
 
   // Apply multi-faceted filters on the client side
   const filteredProducts = useMemo(() => {
     let result = [...baseData.products]
 
-    // 1. Search Query filter within category
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim()
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.sku.toLowerCase().includes(q) ||
-          p.short_description?.toLowerCase().includes(q),
-      )
+    // 1. Relevance-ranked Search Query filter within category
+    const hasSearch = searchQuery.trim().length > 0
+    if (hasSearch) {
+      result = rankAndFilterProductsByQuery(result, searchQuery)
     }
 
     // 2. Price Bracket filter
@@ -190,7 +198,7 @@ function CategoryPage() {
       result = result.filter((p) => getProductEffectivePrice(p) > 0)
     }
 
-    // 5. Apply sorting
+    // 5. Apply sorting (preserve search relevance order when sortBy === 'featured' and query is active)
     if (sortBy === 'price-asc') {
       result.sort((a, b) => getProductEffectivePrice(a) - getProductEffectivePrice(b))
     } else if (sortBy === 'price-desc') {
@@ -199,7 +207,7 @@ function CategoryPage() {
       result.sort((a, b) => a.name.localeCompare(b.name))
     } else if (sortBy === 'name-desc') {
       result.sort((a, b) => b.name.localeCompare(a.name))
-    } else {
+    } else if (!hasSearch) {
       // featured: prioritize products with rich gallery and multi-options
       result.sort((a, b) => {
         const aScore = (a.image ? 10 : 0) + (a.options.length > 0 ? 5 : 0)
@@ -242,13 +250,25 @@ function CategoryPage() {
           </Link>
           <ChevronRight className="h-3 w-3 text-zinc-600" />
           <span className="text-zinc-400">Categories</span>
+          {parentCat && (
+            <>
+              <ChevronRight className="h-3 w-3 text-zinc-600" />
+              <Link
+                to="/categories/$slug"
+                params={{ slug: parentCat.slug }}
+                className="text-zinc-300 hover:text-amber-400 transition-colors"
+              >
+                {parentCat.name}
+              </Link>
+            </>
+          )}
           <ChevronRight className="h-3 w-3 text-zinc-600" />
           <span className="text-amber-400 font-medium">{categoryName}</span>
         </nav>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+            <h1 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
               {categoryName}
             </h1>
             <p className="mt-2 text-sm text-zinc-400 max-w-2xl">
@@ -259,32 +279,43 @@ function CategoryPage() {
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
-            <span className="inline-flex items-center rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-400 border border-amber-500/20">
-              {baseData.total} Products Total
+            <span className="inline-flex items-center rounded-sm border border-amber-500/30 bg-amber-500/10 px-3 py-1 font-mono text-xs font-semibold text-amber-400">
+              {baseData.total} SKUs IN CATALOG
             </span>
           </div>
         </div>
 
-        {/* Subcategories Navigation Pills */}
+        {/* Subcategories Navigation Pills (Remains visible on both parent and child subcategories) */}
         {category?.subcategories && category.subcategories.length > 0 && (
           <div className="mt-6 flex flex-wrap gap-2">
             <Link
               to="/categories/$slug"
-              params={{ slug: category.slug }}
-              className="rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-400"
+              params={{ slug: rootCategorySlug }}
+              className={`btn-tactile rounded-sm border px-3 py-1.5 font-mono text-xs transition-colors ${
+                slug === rootCategorySlug
+                  ? 'border-amber-400 bg-amber-400 text-black font-bold'
+                  : 'border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-amber-500/50 hover:text-white'
+              }`}
             >
-              All {categoryName} ({baseData.total})
+              All {rootCategoryName} ({rootCategoryTotal})
             </Link>
-            {category.subcategories.map((sub) => (
-              <Link
-                key={sub.id}
-                to="/categories/$slug"
-                params={{ slug: sub.slug }}
-                className="rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1 text-xs text-zinc-300 hover:border-amber-500 hover:text-white transition"
-              >
-                {sub.name} ({sub.product_count})
-              </Link>
-            ))}
+            {category.subcategories.map((sub) => {
+              const isSubActive = sub.slug === slug
+              return (
+                <Link
+                  key={sub.id}
+                  to="/categories/$slug"
+                  params={{ slug: sub.slug }}
+                  className={`btn-tactile rounded-sm border px-3 py-1.5 font-mono text-xs transition-colors ${
+                    isSubActive
+                      ? 'border-amber-400 bg-amber-400 text-black font-bold'
+                      : 'border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-amber-500/50 hover:text-white'
+                  }`}
+                >
+                  {sub.name} ({sub.product_count})
+                </Link>
+              )
+            })}
           </div>
         )}
       </div>
@@ -293,17 +324,17 @@ function CategoryPage() {
       <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
         {/* Desktop / Tablet Filter Sidebar */}
         <div className="hidden md:block space-y-6">
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 space-y-6 sticky top-24">
-            <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
-              <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4 text-amber-500" />
-                Filter Equipment
+          <div className="rounded-md border border-zinc-800/90 bg-zinc-900/50 p-5 space-y-6 sticky top-24">
+            <div className="flex items-center justify-between gap-2 border-b border-zinc-800/80 pb-3">
+              <h2 className="whitespace-nowrap font-display text-sm font-bold text-white flex items-center gap-2">
+                <SlidersHorizontal className="h-4 w-4 shrink-0 text-amber-400" />
+                <span>Filter Hardware</span>
               </h2>
               {activeFiltersCount > 0 && (
                 <button
                   type="button"
                   onClick={resetAllFilters}
-                  className="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 font-medium"
+                  className="btn-tactile whitespace-nowrap font-mono text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 font-semibold"
                 >
                   <RotateCcw className="h-3 w-3" /> Reset
                 </button>
@@ -312,23 +343,24 @@ function CategoryPage() {
 
             {/* Keyword Search inside category */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                Search in {categoryName}
+              <label className="font-mono text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                Keyword / SKU Filter
               </label>
               <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-500" />
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-zinc-500" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Filter by model, SKU..."
-                  className="w-full rounded-lg border border-zinc-800 bg-zinc-950 py-2 pl-9 pr-8 text-xs text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
+                  placeholder="Model or SKU..."
+                  className="w-full rounded-sm border border-zinc-800 bg-zinc-950 py-2 pl-8 pr-7 text-xs text-white placeholder-zinc-500 focus:border-amber-400 focus:outline-none"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-2.5 top-2.5 text-zinc-500 hover:text-zinc-300"
+                    className="absolute right-2 top-2.5 text-zinc-500 hover:text-zinc-300"
+                    aria-label="Clear category search"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -338,7 +370,7 @@ function CategoryPage() {
 
             {/* Price Brackets */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              <label className="font-mono text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                 Price Range
               </label>
               <div className="space-y-1">
@@ -347,15 +379,15 @@ function CategoryPage() {
                     key={bracket.id}
                     type="button"
                     onClick={() => setPriceBracket(bracket.id)}
-                    className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-xs transition text-left ${
+                    className={`btn-tactile w-full flex items-center justify-between rounded-sm px-3 py-2 text-xs transition text-left ${
                       priceBracket === bracket.id
-                        ? 'bg-amber-500/10 text-amber-400 font-semibold border border-amber-500/20'
+                        ? 'bg-amber-400/10 text-amber-400 font-semibold border border-amber-400/30'
                         : 'text-zinc-300 hover:bg-zinc-800/60 hover:text-white'
                     }`}
                   >
                     <span>{bracket.label}</span>
                     {priceBracket === bracket.id && (
-                      <Check className="h-3.5 w-3.5 text-amber-400" />
+                      <Check className="h-3.5 w-3.5 shrink-0 text-amber-400" />
                     )}
                   </button>
                 ))}
@@ -364,27 +396,25 @@ function CategoryPage() {
 
             {/* Product Configuration / Variant format */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              <label className="font-mono text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                 Specification Format
               </label>
               <div className="space-y-1">
-                {[
-                  { id: 'all', label: 'All Machine Formats' },
-                  { id: 'configurable', label: 'Multi-Stroke & Dual Battery' },
-                  { id: 'single', label: 'Single Standard Edition' },
-                ].map((item) => (
+                {SPEC_FORMATS.map((item) => (
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => setProductType(item.id as TypeOption)}
-                    className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-xs transition text-left ${
+                    onClick={() => setProductType(item.id)}
+                    className={`btn-tactile w-full flex items-center justify-between rounded-sm px-3 py-2 text-xs transition text-left ${
                       productType === item.id
-                        ? 'bg-amber-500/10 text-amber-400 font-semibold border border-amber-500/20'
+                        ? 'bg-amber-400/10 text-amber-400 font-semibold border border-amber-400/30'
                         : 'text-zinc-300 hover:bg-zinc-800/60 hover:text-white'
                     }`}
                   >
                     <span>{item.label}</span>
-                    {productType === item.id && <Check className="h-3.5 w-3.5 text-amber-400" />}
+                    {productType === item.id && (
+                      <Check className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+                    )}
                   </button>
                 ))}
               </div>
@@ -397,7 +427,7 @@ function CategoryPage() {
                   type="checkbox"
                   checked={inStockOnly}
                   onChange={(e) => setInStockOnly(e.target.checked)}
-                  className="rounded border-zinc-700 bg-zinc-950 text-amber-500 focus:ring-0 focus:ring-offset-0"
+                  className="rounded-sm border-zinc-700 bg-zinc-950 text-amber-400 focus:ring-0 focus:ring-offset-0"
                 />
                 <span>In Stock & Ready to Ship</span>
               </label>
@@ -408,38 +438,40 @@ function CategoryPage() {
         {/* Products Column */}
         <div className="md:col-span-3 space-y-6">
           {/* Top Control Bar: Total count, Mobile filter button & Sort selector */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-xl border border-zinc-800 bg-zinc-900/40 p-3 sm:px-4 text-xs text-zinc-400">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-md border border-zinc-800/90 bg-zinc-900/40 p-3 sm:px-4 text-xs text-zinc-400">
             <div className="flex items-center justify-between sm:justify-start gap-3">
               {/* Mobile Filter Toggle */}
               <button
                 type="button"
                 onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
-                className="md:hidden flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-zinc-700"
+                className="btn-tactile md:hidden flex items-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-zinc-700"
               >
                 <Filter className="h-3.5 w-3.5 text-amber-400" />
                 <span>Filters</span>
                 {activeFiltersCount > 0 && (
-                  <span className="ml-1 rounded-full bg-amber-500 px-1.5 py-0.2 text-[10px] font-bold text-black">
+                  <span className="ml-1 rounded-sm bg-amber-400 px-1.5 py-0.5 font-mono text-[10px] font-bold text-black">
                     {activeFiltersCount}
                   </span>
                 )}
               </button>
 
-              <div className="flex items-center gap-1.5">
-                <span className="hidden sm:inline">Showing</span>
-                <strong className="text-white font-semibold">{filteredProducts.length}</strong> of{' '}
-                <strong className="text-white font-semibold">{baseData.total}</strong> products
+              <div className="flex items-center gap-1.5 font-mono text-xs">
+                <span className="hidden sm:inline text-zinc-500">SHOWING</span>
+                <strong className="text-white font-semibold">{filteredProducts.length}</strong>
+                <span className="text-zinc-500">OF</span>
+                <strong className="text-white font-semibold">{baseData.total}</strong>
+                <span className="text-zinc-500">UNITS</span>
               </div>
             </div>
 
             {/* Sort Control */}
             <div className="flex items-center justify-end gap-2">
               <ArrowUpDown className="h-3.5 w-3.5 text-zinc-500" />
-              <span className="text-zinc-500">Sort by:</span>
+              <span className="font-mono text-[11px] uppercase text-zinc-500">Sort by:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-xs text-white focus:border-amber-500 focus:outline-none"
+                className="rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-1.5 font-mono text-xs text-white focus:border-amber-400 focus:outline-none"
               >
                 <option value="featured">Featured / Best Matches</option>
                 <option value="price-asc">Price: Low to High</option>
@@ -453,15 +485,16 @@ function CategoryPage() {
           {/* Active Filter Pills Bar */}
           {activeFiltersCount > 0 && (
             <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="text-xs text-zinc-500">Active Filters:</span>
+              <span className="font-mono text-[11px] uppercase text-zinc-500">Active Filters:</span>
 
               {searchQuery && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-800/90 px-3 py-1 text-xs text-zinc-200">
+                <span className="inline-flex items-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 font-mono text-xs text-zinc-200">
                   Search: <strong className="text-amber-400">"{searchQuery}"</strong>
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
                     className="hover:text-white"
+                    aria-label="Remove search filter"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -469,7 +502,7 @@ function CategoryPage() {
               )}
 
               {priceBracket !== 'all' && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-800/90 px-3 py-1 text-xs text-zinc-200">
+                <span className="inline-flex items-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 font-mono text-xs text-zinc-200">
                   Price:{' '}
                   <strong className="text-amber-400">
                     {PRICE_BRACKETS.find((b) => b.id === priceBracket)?.label}
@@ -478,6 +511,7 @@ function CategoryPage() {
                     type="button"
                     onClick={() => setPriceBracket('all')}
                     className="hover:text-white"
+                    aria-label="Remove price filter"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -485,15 +519,16 @@ function CategoryPage() {
               )}
 
               {productType !== 'all' && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-800/90 px-3 py-1 text-xs text-zinc-200">
+                <span className="inline-flex items-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 font-mono text-xs text-zinc-200">
                   Format:{' '}
                   <strong className="text-amber-400">
-                    {productType === 'configurable' ? 'Multi-Stroke / Options' : 'Single Standard'}
+                    {SPEC_FORMATS.find((f) => f.id === productType)?.label}
                   </strong>
                   <button
                     type="button"
                     onClick={() => setProductType('all')}
                     className="hover:text-white"
+                    aria-label="Remove format filter"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -501,13 +536,14 @@ function CategoryPage() {
               )}
 
               {inStockOnly && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-800/90 px-3 py-1 text-xs text-zinc-200">
+                <span className="inline-flex items-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 font-mono text-xs text-zinc-200">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                   In Stock Only
                   <button
                     type="button"
                     onClick={() => setInStockOnly(false)}
                     className="hover:text-white"
+                    aria-label="Remove stock filter"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -517,7 +553,7 @@ function CategoryPage() {
               <button
                 type="button"
                 onClick={resetAllFilters}
-                className="text-xs text-amber-500 hover:text-amber-400 underline underline-offset-2 ml-1"
+                className="font-mono text-xs text-amber-400 hover:text-amber-300 underline underline-offset-2 ml-1"
               >
                 Clear all
               </button>
@@ -526,16 +562,17 @@ function CategoryPage() {
 
           {/* Mobile Filter Drawer / Box */}
           {isMobileFilterOpen && (
-            <div className="md:hidden rounded-xl border border-zinc-800 bg-zinc-900/95 p-5 space-y-5 animate-fadeIn">
+            <div className="md:hidden rounded-md border border-zinc-800 bg-zinc-900/95 p-5 space-y-5">
               <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-                <span className="text-sm font-bold text-white flex items-center gap-2">
-                  <SlidersHorizontal className="h-4 w-4 text-amber-500" />
-                  Filter Options
+                <span className="font-display text-sm font-bold text-white flex items-center gap-2">
+                  <SlidersHorizontal className="h-4 w-4 text-amber-400" />
+                  Filter Hardware
                 </span>
                 <button
                   type="button"
                   onClick={() => setIsMobileFilterOpen(false)}
-                  className="rounded p-1 text-zinc-400 hover:text-white"
+                  className="rounded-sm p-1 text-zinc-400 hover:text-white"
+                  aria-label="Close mobile filters"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -543,28 +580,32 @@ function CategoryPage() {
 
               {/* Mobile Search */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-400">Search</label>
+                <label className="font-mono text-[11px] font-semibold uppercase text-zinc-400">
+                  Keyword / SKU Filter
+                </label>
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Filter by keyword..."
-                  className="w-full rounded-lg border border-zinc-800 bg-zinc-950 p-2 text-xs text-white"
+                  placeholder="Model or SKU..."
+                  className="w-full rounded-sm border border-zinc-800 bg-zinc-950 p-2 text-xs text-white"
                 />
               </div>
 
               {/* Mobile Price */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-400">Price Range</label>
+                <label className="font-mono text-[11px] font-semibold uppercase text-zinc-400">
+                  Price Range
+                </label>
                 <div className="grid grid-cols-2 gap-2">
                   {PRICE_BRACKETS.map((bracket) => (
                     <button
                       key={bracket.id}
                       type="button"
                       onClick={() => setPriceBracket(bracket.id)}
-                      className={`rounded-lg p-2 text-xs text-left ${
+                      className={`btn-tactile rounded-sm p-2 text-xs text-left ${
                         priceBracket === bracket.id
-                          ? 'bg-amber-500 text-black font-bold'
+                          ? 'bg-amber-400 text-black font-bold'
                           : 'bg-zinc-950 border border-zinc-800 text-zinc-300'
                       }`}
                     >
@@ -574,19 +615,55 @@ function CategoryPage() {
                 </div>
               </div>
 
+              {/* Mobile Specification Format */}
+              <div className="space-y-1.5">
+                <label className="font-mono text-[11px] font-semibold uppercase text-zinc-400">
+                  Specification Format
+                </label>
+                <div className="grid grid-cols-1 gap-1.5">
+                  {SPEC_FORMATS.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setProductType(item.id)}
+                      className={`btn-tactile rounded-sm p-2 text-xs text-left ${
+                        productType === item.id
+                          ? 'bg-amber-400 text-black font-bold'
+                          : 'bg-zinc-950 border border-zinc-800 text-zinc-300'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mobile In-Stock Toggle */}
+              <div className="pt-2 border-t border-zinc-800">
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-300">
+                  <input
+                    type="checkbox"
+                    checked={inStockOnly}
+                    onChange={(e) => setInStockOnly(e.target.checked)}
+                    className="rounded-sm border-zinc-700 bg-zinc-950 text-amber-400"
+                  />
+                  <span>In Stock & Ready to Ship</span>
+                </label>
+              </div>
+
               {/* Action Buttons */}
               <div className="flex items-center gap-3 pt-3 border-t border-zinc-800">
                 <button
                   type="button"
                   onClick={resetAllFilters}
-                  className="w-1/2 rounded-lg border border-zinc-700 py-2 text-xs font-semibold text-zinc-300"
+                  className="btn-tactile w-1/2 rounded-sm border border-zinc-700 py-2 font-mono text-xs font-semibold text-zinc-300"
                 >
                   Reset All
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsMobileFilterOpen(false)}
-                  className="w-1/2 rounded-lg bg-amber-500 py-2 text-xs font-bold text-black"
+                  className="btn-tactile w-1/2 rounded-sm bg-amber-400 py-2 font-mono text-xs font-bold text-black"
                 >
                   Apply Filters ({filteredProducts.length})
                 </button>
@@ -602,12 +679,14 @@ function CategoryPage() {
               ))}
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20 p-12 text-center space-y-4">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-zinc-800/80 border border-zinc-700/50">
+            <div className="rounded-md border border-dashed border-zinc-800 bg-zinc-900/20 p-12 text-center space-y-4">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-sm bg-zinc-900 border border-zinc-800">
                 <Package className="h-7 w-7 text-zinc-500" />
               </div>
               <div className="space-y-1 max-w-sm mx-auto">
-                <h3 className="text-base font-bold text-white">No Matching Products Found</h3>
+                <h3 className="font-display text-base font-bold text-white">
+                  No Matching Hardware Found
+                </h3>
                 <p className="text-xs text-zinc-400">
                   No equipment in {categoryName} matches your selected filter criteria.
                 </p>
@@ -615,7 +694,7 @@ function CategoryPage() {
               <button
                 type="button"
                 onClick={resetAllFilters}
-                className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-xs font-bold text-black hover:bg-amber-400 transition"
+                className="btn-tactile inline-flex items-center gap-2 rounded-sm bg-amber-400 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-black hover:bg-amber-300 transition"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 Clear All Filters
